@@ -1,0 +1,35 @@
+#!/bin/bash
+
+__os_name="$(uname -s)"
+case "$__os_name" in
+    CYGWIN*|MINGW*|MSYS*)
+        export BUILD_HOST=Windows
+        ;;
+    Linux*)
+        export BUILD_HOST=Linux
+        ;;
+    Darwin*)
+        export BUILD_HOST=Darwin
+        ;;
+esac
+unset __os_name
+export PATCH_DIR="$(pwd)/patch"
+export SOURCE_DIR="${SOURCE_DIR:-.src-tarballs}"
+export CROSS_PREFIX="${CROSS_PREFIX:-wasm32-wamr-wasi}"
+
+function apply_patch {
+    if [ -d "$PATCH_DIR/$1" ]; then
+        for patchfile in "$PATCH_DIR/$1/"*.patch; do
+            patch -p1 < "$patchfile"
+        done
+    fi
+}
+
+function cpu_count {
+    if [[ $BUILD_HOST == "Darwin" ]]; then
+        NCPU="$(sysctl -n hw.logicalcpu)"
+    else
+        NCPU="$(nproc)"
+    fi
+    echo "$NCPU"
+}
