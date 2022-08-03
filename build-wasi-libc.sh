@@ -28,7 +28,7 @@ export CC=${CC:-${CROSS_PREFIX}-clang}
 
 make CC="$CC" AR="${CROSS_PREFIX}-ar" NM="${CROSS_PREFIX}-nm" -j$(cpu_count)
 mkdir -p "$OUTPUT_DIR"
-cp -r sysroot/* "$OUTPUT_DIR" && rm -rf sysroot
+cp -r sysroot/* "$OUTPUT_DIR"
 LIBDIR="$OUTPUT_DIR/lib/wasm32-wasi"
 # Merge some emulated libs into libc
 "${CROSS_PREFIX}-ar" qcsL "$LIBDIR/libc.a" "$LIBDIR/libwasi-emulated-signal.a"

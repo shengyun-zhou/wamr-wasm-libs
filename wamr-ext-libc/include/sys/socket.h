@@ -87,34 +87,10 @@ struct linger {
 
 #define SOL_IP          0
 #define SOL_IPV6        41
-#define SOL_ICMPV6      58
-
-#define SOL_RAW         255
-#define SOL_DECNET      261
-#define SOL_X25         262
-#define SOL_PACKET      263
-#define SOL_ATM         264
-#define SOL_AAL         265
-#define SOL_IRDA        266
-#define SOL_NETBEUI     267
-#define SOL_LLC         268
-#define SOL_DCCP        269
-#define SOL_NETLINK     270
-#define SOL_TIPC        271
-#define SOL_RXRPC       272
-#define SOL_PPPOL2TP    273
-#define SOL_BLUETOOTH   274
-#define SOL_PNPIPE      275
-#define SOL_RDS         276
-#define SOL_IUCV        277
-#define SOL_CAIF        278
-#define SOL_ALG         279
-#define SOL_NFC         280
-#define SOL_KCM         281
-#define SOL_TLS         282
-#define SOL_XDP         283
 
 #define SOMAXCONN       128
+
+#define MSG_NOSIGNAL  0x4000
 
 struct cmsghdr {
 	socklen_t cmsg_len;
@@ -135,9 +111,6 @@ struct cmsghdr {
 #define CMSG_ALIGN(len) (len)
 #define CMSG_SPACE(len) (CMSG_ALIGN (len) + CMSG_ALIGN (sizeof (struct cmsghdr)))
 #define CMSG_LEN(len)   (CMSG_ALIGN (sizeof (struct cmsghdr)) + (len))
-
-#define SCM_RIGHTS      0x01
-#define SCM_CREDENTIALS 0x02
 
 #include <__struct_sockaddr.h>
 #include <__struct_sockaddr_storage.h>

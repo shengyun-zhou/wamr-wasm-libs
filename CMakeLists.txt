@@ -1,18 +1,14 @@
 cmake_minimum_required(VERSION 3.15)
+set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_SYSTEM_NAME WASI)
 project(wamr_wasi_libc C)
 set(CMAKE_C_STANDARD 11)
 
-include(CheckSymbolExists)
-check_symbol_exists(__wamr__ "stdint.h" WAMR)
-if (NOT WAMR)
-    message(FATAL_ERROR "The compiler cannot be used for building WebAssembly libs for WAMR")
-endif()
-
 set(WASI_LIBC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/wasi-libc)
 set(PREBUILT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi/libc.a)
-set(WASI_LIBC_TOP_HALF_SRC ${WASI_LIBC_SOURCE}/libc-top-half/musl/src)
+set(WASI_LIBC_TOP_HALF ${WASI_LIBC_SOURCE}/libc-top-half/musl)
+set(WASI_LIBC_TOP_HALF_SRC ${WASI_LIBC_TOP_HALF}/src)
 set(WAMR_EXT_LIBC_ROOT_DIR wamr-ext-libc)
 set(WAMR_EXT_LIBC_INCLUDE_DIR ${WAMR_EXT_LIBC_ROOT_DIR}/include)
 
@@ -47,7 +43,7 @@ add_library(wamr_libc_include_all OBJECT
         ${CMAKE_CURRENT_BINARY_DIR}/include-all.c)
 target_include_directories(wamr_libc_include_all PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/sysroot
+        ${WASI_LIBC_SOURCE}/sysroot/include
         )
 
 add_custom_target(pre_wamr_libc
@@ -61,8 +57,15 @@ add_dependencies(pre_wamr_libc wamr_libc_include_all)
 
 # Recompile dlmalloc in wasi-libc with multi-thread support
 add_library(wamr_dlmalloc OBJECT ${WASI_LIBC_SOURCE}/dlmalloc/src/dlmalloc.c)
-add_compile_options(-Werror -Wno-switch)
+add_compile_options(-Werror -Wno-switch -Wno-shift-op-parentheses
+    -Wno-null-pointer-arithmetic -Wno-unused-parameter -Wno-sign-compare
+    -Wno-unused-variable -Wno-unused-function -Wno-ignored-attributes -Wno-missing-braces
+    -Wno-ignored-pragmas -Wno-unused-but-set-variable)
 target_compile_definitions(wamr_dlmalloc PRIVATE -DUSE_LOCKS=1 -DUSE_SPIN_LOCKS=0)
+target_include_directories(wamr_dlmalloc PRIVATE
+        ${WAMR_EXT_LIBC_INCLUDE_DIR}
+        ${WASI_LIBC_SOURCE}/sysroot/include
+        )
 add_dependencies(wamr_dlmalloc pre_wamr_libc)
 
 add_library(wamr_top_half OBJECT
@@ -102,7 +105,10 @@ add_library(wamr_top_half OBJECT
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include
-        ${WASI_LIBC_TOP_HALF_SRC}/internal)
+        ${WASI_LIBC_TOP_HALF_SRC}/internal
+        ${WAMR_EXT_LIBC_INCLUDE_DIR}
+        ${WASI_LIBC_SOURCE}/sysroot/include
+        )
 add_dependencies(wamr_top_half pre_wamr_libc)
 
 set(WASI_LIBC_BOTTOM_HALF_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/source)
@@ -110,6 +116,11 @@ set(WASI_LIBC_BOTTOM_HALF_CLOUDLIBC_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/clo
 add_library(wamr_libc STATIC
         $<TARGET_OBJECTS:wamr_dlmalloc>
         $<TARGET_OBJECTS:wamr_top_half>
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/pthread.c
+        )
+target_include_directories(wamr_libc PRIVATE
+        ${WAMR_EXT_LIBC_INCLUDE_DIR}
+        sysroot/include
         )
 
 add_custom_command(TARGET wamr_libc POST_BUILD
@@ -118,4 +129,6 @@ add_custom_command(TARGET wamr_libc POST_BUILD
         dlmalloc.o recv.o send.o getsockopt.o sysconf.o fcntl.o
         memcmp.o memcpy.o memmove.o memset.o accept.o
         COMMAND ${CMAKE_AR} qscL ${PREBUILT_WASI_LIBC} $<TARGET_FILE:wamr_libc>
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${WAMR_EXT_LIBC_INCLUDE_DIR} sysroot/include
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
