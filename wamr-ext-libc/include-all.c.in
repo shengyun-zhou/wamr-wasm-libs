@@ -1,0 +1,3 @@
+${TEST_ALL_INCLUDE_FILES}
+
+void foo() {}

@@ -1,0 +1,121 @@
+cmake_minimum_required(VERSION 3.15)
+set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_SYSTEM_NAME WASI)
+project(wamr_wasi_libc C)
+set(CMAKE_C_STANDARD 11)
+
+include(CheckSymbolExists)
+check_symbol_exists(__wamr__ "stdint.h" WAMR)
+if (NOT WAMR)
+    message(FATAL_ERROR "The compiler cannot be used for building WebAssembly libs for WAMR")
+endif()
+
+set(WASI_LIBC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/wasi-libc)
+set(PREBUILT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi/libc.a)
+set(WASI_LIBC_TOP_HALF_SRC ${WASI_LIBC_SOURCE}/libc-top-half/musl/src)
+set(WAMR_EXT_LIBC_ROOT_DIR wamr-ext-libc)
+set(WAMR_EXT_LIBC_INCLUDE_DIR ${WAMR_EXT_LIBC_ROOT_DIR}/include)
+
+set(_WAMR_EXT_LIBC_HEADERS
+        arpa/inet.h
+        net/if.h
+        sys/mount.h
+        sys/socket.h
+        sys/stat.h
+        sys/statvfs.h
+        sys/un.h
+        sys/wait.h
+        dlfcn.h
+        ifaddrs.h
+        netdb.h
+        pthread.h
+        resolv.h
+        signal.h
+        stdio.h
+        syslog.h
+        unistd.h
+        )
+
+set(TEST_ALL_INCLUDE_FILES "")
+set(WAMR_EXT_LIBC_HEADERS "")
+foreach(header_file IN ITEMS ${_WAMR_EXT_LIBC_HEADERS})
+    list(APPEND WAMR_EXT_LIBC_HEADERS ${WAMR_EXT_LIBC_INCLUDE_DIR}/${header_file})
+    string(APPEND TEST_ALL_INCLUDE_FILES "#include <${header_file}>\n")
+endforeach()
+configure_file(${WAMR_EXT_LIBC_ROOT_DIR}/include-all.c.in ${CMAKE_CURRENT_BINARY_DIR}/include-all.c)
+add_library(wamr_libc_include_all OBJECT
+        ${CMAKE_CURRENT_BINARY_DIR}/include-all.c)
+target_include_directories(wamr_libc_include_all PRIVATE
+        ${WAMR_EXT_LIBC_INCLUDE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/sysroot
+        )
+
+add_custom_target(pre_wamr_libc
+        COMMAND ${CMAKE_COMMAND} -E rm -rf ${WASI_LIBC_SOURCE}/libc-top-half/musl/include
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${WASI_LIBC_SOURCE}/libc-top-half/musl/include.bak ${WASI_LIBC_SOURCE}/libc-top-half/musl/include
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${WAMR_EXT_LIBC_INCLUDE_DIR} ${WASI_LIBC_SOURCE}/libc-top-half/musl/include
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        SOURCES ${WAMR_EXT_LIBC_HEADERS}
+        )
+add_dependencies(pre_wamr_libc wamr_libc_include_all)
+
+# Recompile dlmalloc in wasi-libc with multi-thread support
+add_library(wamr_dlmalloc OBJECT ${WASI_LIBC_SOURCE}/dlmalloc/src/dlmalloc.c)
+add_compile_options(-Werror -Wno-switch)
+target_compile_definitions(wamr_dlmalloc PRIVATE -DUSE_LOCKS=1 -DUSE_SPIN_LOCKS=0)
+add_dependencies(wamr_dlmalloc pre_wamr_libc)
+
+add_library(wamr_top_half OBJECT
+        ${WASI_LIBC_TOP_HALF_SRC}/network/inet_addr.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/inet_legacy.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/inet_ntoa.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/send.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/recv.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/dn_expand.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/dns_parse.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/freeaddrinfo.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gai_strerror.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/getaddrinfo.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gethostbyaddr_r.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gethostbyaddr.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gethostbyname_r.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gethostbyname.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gethostbyname2_r.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/gethostbyname2.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/getnameinfo.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/getservbyname_r.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/getservbyname.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/getservbyport_r.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/getservbyport.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/lookup_ipliteral.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/lookup_name.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/lookup_serv.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_init.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_mkquery.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_msend.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_query.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_querydomain.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_send.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/res_state.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/herror.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/hstrerror.c
+        )
+target_include_directories(wamr_top_half PRIVATE
+        ${WASI_LIBC_TOP_HALF_SRC}/include
+        ${WASI_LIBC_TOP_HALF_SRC}/internal)
+add_dependencies(wamr_top_half pre_wamr_libc)
+
+set(WASI_LIBC_BOTTOM_HALF_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/source)
+set(WASI_LIBC_BOTTOM_HALF_CLOUDLIBC_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/cloudlibc/src/libc)
+add_library(wamr_libc STATIC
+        $<TARGET_OBJECTS:wamr_dlmalloc>
+        $<TARGET_OBJECTS:wamr_top_half>
+        )
+
+add_custom_command(TARGET wamr_libc POST_BUILD
+        # Remove some original function implementation
+        COMMAND ${CMAKE_AR} -d ${PREBUILT_WASI_LIBC}
+        dlmalloc.o recv.o send.o getsockopt.o sysconf.o fcntl.o
+        memcmp.o memcpy.o memmove.o memset.o accept.o
+        COMMAND ${CMAKE_AR} qscL ${PREBUILT_WASI_LIBC} $<TARGET_FILE:wamr_libc>
+        )
