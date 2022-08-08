@@ -29,3 +29,20 @@ index dcd474f..6eb672b 100644
  
  #undef _Addr
  #undef _Int64
+diff --git a/libc-top-half/musl/include/alltypes.h.in b/libc-top-half/musl/include/alltypes.h.in
+index 6eb672b..4bcaebf 100644
+--- a/libc-top-half/musl/include/alltypes.h.in
++++ b/libc-top-half/musl/include/alltypes.h.in
+@@ -67,11 +67,7 @@ TYPEDEF unsigned gid_t;
+ TYPEDEF int key_t;
+ TYPEDEF unsigned useconds_t;
+ 
+-#ifdef __cplusplus
+-TYPEDEF unsigned long pthread_t;
+-#else
+-TYPEDEF struct __pthread * pthread_t;
+-#endif
++TYPEDEF unsigned pthread_t;
+ TYPEDEF int pthread_once_t;
+ TYPEDEF unsigned pthread_mutex_t;
+ TYPEDEF unsigned pthread_key_t;
