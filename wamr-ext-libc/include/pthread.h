@@ -85,7 +85,6 @@ int pthread_create(pthread_t *__restrict, const pthread_attr_t *__restrict, void
 int pthread_detach(pthread_t);
 void pthread_exit(void*);
 int pthread_join(pthread_t, void **);
-
 pthread_t pthread_self(void);
 
 #define pthread_equal(x, y) ((x)==(y))
@@ -131,8 +130,8 @@ int pthread_setcanceltype(int, int *);
 void pthread_cleanup_push(void (*)(void *), void *);
 void pthread_cleanup_pop(int);
 
-int pthread_setname_np(pthread_t thread, const char *name);
-int pthread_getname_np(pthread_t thread, char *name, uint32_t len);
+int pthread_setname_np(const char *name);
+int pthread_getname_np(char *name, size_t len);
 
 #ifdef __cplusplus
 }
