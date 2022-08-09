@@ -6,7 +6,8 @@ project(wamr_wasi_libc C)
 set(CMAKE_C_STANDARD 11)
 
 set(WASI_LIBC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/wasi-libc)
-set(PREBUILT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi/libc.a)
+set(PREBUILT_WASI_LIBC ${WASI_LIBC_SOURCE}/sysroot/lib/wasm32-wasi/libc.a)
+set(OUTPUT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi/libc.a)
 set(WASI_LIBC_TOP_HALF ${WASI_LIBC_SOURCE}/libc-top-half/musl)
 set(WASI_LIBC_TOP_HALF_SRC ${WASI_LIBC_TOP_HALF}/src)
 set(WAMR_EXT_LIBC_ROOT_DIR wamr-ext-libc)
@@ -120,15 +121,16 @@ add_library(wamr_libc STATIC
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
-        sysroot/include
+        ${WASI_LIBC_SOURCE}/sysroot/include
         )
 
 add_custom_command(TARGET wamr_libc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy ${PREBUILT_WASI_LIBC} ${CMAKE_CURRENT_BINARY_DIR}/libc.a
         # Remove some original function implementation
-        COMMAND ${CMAKE_AR} -d ${PREBUILT_WASI_LIBC}
-        dlmalloc.o recv.o send.o getsockopt.o sysconf.o fcntl.o
-        memcmp.o memcpy.o memmove.o memset.o accept.o
-        COMMAND ${CMAKE_AR} qscL ${PREBUILT_WASI_LIBC} $<TARGET_FILE:wamr_libc>
+        COMMAND ${CMAKE_AR} -d ${CMAKE_CURRENT_BINARY_DIR}/libc.a
+        dlmalloc.o recv.o send.o getsockopt.o sysconf.o fcntl.o accept.o
+        COMMAND ${CMAKE_AR} qscL ${CMAKE_CURRENT_BINARY_DIR}/libc.a $<TARGET_FILE:wamr_libc>
+        COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libc.a ${OUTPUT_WASI_LIBC}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${WAMR_EXT_LIBC_INCLUDE_DIR} sysroot/include
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
