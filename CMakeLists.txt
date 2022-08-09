@@ -120,6 +120,7 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/pthread.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/wamr_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/sysconf.c
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/cxa_exception.c
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
