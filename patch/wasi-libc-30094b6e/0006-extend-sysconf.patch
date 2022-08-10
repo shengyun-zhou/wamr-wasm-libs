@@ -1,0 +1,34 @@
+diff --git a/libc-top-half/musl/src/conf/sysconf.c b/libc-top-half/musl/src/conf/sysconf.c
+index 1a406e6..c06d244 100644
+--- a/libc-top-half/musl/src/conf/sysconf.c
++++ b/libc-top-half/musl/src/conf/sysconf.c
+@@ -32,6 +32,8 @@
+ 
+ #define RLIM(x) (-32768|(RLIMIT_ ## x))
+ 
++extern long __wamr_ext_sysconf(int name);
++
+ long sysconf(int name)
+ {
+ 	static const short values[] = {
+@@ -139,10 +141,6 @@ long sysconf(int name)
+ 		[_SC_THREAD_PRIO_INHERIT] = -1,
+ 		[_SC_THREAD_PRIO_PROTECT] = -1,
+ 		[_SC_THREAD_PROCESS_SHARED] = VER,
+-		[_SC_NPROCESSORS_CONF] = JT_NPROCESSORS_CONF,
+-		[_SC_NPROCESSORS_ONLN] = JT_NPROCESSORS_ONLN,
+-		[_SC_PHYS_PAGES] = JT_PHYS_PAGES,
+-		[_SC_AVPHYS_PAGES] = JT_AVPHYS_PAGES,
+ 		[_SC_ATEXIT_MAX] = -1,
+ 		[_SC_PASS_MAX] = -1,
+ 		[_SC_XOPEN_VERSION] = _XOPEN_VERSION,
+@@ -214,8 +212,7 @@ long sysconf(int name)
+ 	};
+ 
+ 	if (name >= sizeof(values)/sizeof(values[0]) || !values[name]) {
+-		errno = EINVAL;
+-		return -1;
++		return __wamr_ext_sysconf(name);
+ 	} else if (values[name] >= -1) {
+ 		return values[name];
+ 	} else if (values[name] < -256) {

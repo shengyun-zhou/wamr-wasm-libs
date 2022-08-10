@@ -124,7 +124,7 @@ add_custom_command(TARGET wamr_libc POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${PREBUILT_WASI_LIBC} ${CMAKE_CURRENT_BINARY_DIR}/libc.a
         # Remove some original function implementation
         COMMAND ${CMAKE_AR} -d ${CMAKE_CURRENT_BINARY_DIR}/libc.a
-        dlmalloc.o recv.o send.o getsockopt.o sysconf.o fcntl.o accept.o
+        dlmalloc.o recv.o send.o getsockopt.o accept.o
         COMMAND ${CMAKE_AR} qscL ${CMAKE_CURRENT_BINARY_DIR}/libc.a $<TARGET_FILE:wamr_libc>
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libc.a ${OUTPUT_WASI_LIBC}
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${WAMR_EXT_LIBC_INCLUDE_DIR} sysroot/include
