@@ -14,23 +14,16 @@ set(WAMR_EXT_LIBC_ROOT_DIR wamr-ext-libc)
 set(WAMR_EXT_LIBC_INCLUDE_DIR ${WAMR_EXT_LIBC_ROOT_DIR}/include)
 
 set(_WAMR_EXT_LIBC_HEADERS
-        arpa/inet.h
         net/if.h
         sys/mount.h
         sys/socket.h
-        sys/stat.h
         sys/statvfs.h
-        sys/un.h
-        sys/wait.h
         dlfcn.h
         ifaddrs.h
         netdb.h
         pthread.h
         resolv.h
-        signal.h
-        stdio.h
         syslog.h
-        unistd.h
         )
 
 set(TEST_ALL_INCLUDE_FILES "")

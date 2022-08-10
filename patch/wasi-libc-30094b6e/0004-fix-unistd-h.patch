@@ -1,0 +1,42 @@
+diff --git a/libc-top-half/musl/include/unistd.h b/libc-top-half/musl/include/unistd.h
+index 9231d60..5d32ef5 100644
+--- a/libc-top-half/musl/include/unistd.h
++++ b/libc-top-half/musl/include/unistd.h
+@@ -93,12 +93,10 @@ ssize_t write(int, const void *, size_t);
+ ssize_t pread(int, void *, size_t, off_t);
+ ssize_t pwrite(int, const void *, size_t, off_t);
+ 
+-#ifdef __wasilibc_unmodified_upstream /* WASI has no chown */
+ int chown(const char *, uid_t, gid_t);
+ int fchown(int, uid_t, gid_t);
+ int lchown(const char *, uid_t, gid_t);
+ int fchownat(int, const char *, uid_t, gid_t, int);
+-#endif
+ 
+ int link(const char *, const char *);
+ int linkat(int, const char *, int, const char *, int);
+@@ -177,7 +175,6 @@ pid_t tcgetpgrp(int);
+ int tcsetpgrp(int, pid_t);
+ #endif
+ 
+-#ifdef __wasilibc_unmodified_upstream /* WASI has no getuid etc. */
+ uid_t getuid(void);
+ uid_t geteuid(void);
+ gid_t getgid(void);
+@@ -187,7 +184,6 @@ int setuid(uid_t);
+ int seteuid(uid_t);
+ int setgid(gid_t);
+ int setegid(gid_t);
+-#endif
+ 
+ char *getlogin(void);
+ int getlogin_r(char *, size_t);
+@@ -259,6 +255,8 @@ int acct(const char *);
+ long syscall(long, ...);
+ int execvpe(const char *, char *const [], char *const []);
+ int issetugid(void);
++#else
++int getpagesize(void);
+ #endif
+ int getentropy(void *, size_t);
+ extern int optreset;
