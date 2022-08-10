@@ -40,3 +40,19 @@ index 9231d60..5d32ef5 100644
  #endif
  int getentropy(void *, size_t);
  extern int optreset;
+diff --git a/libc-top-half/musl/include/unistd.h b/libc-top-half/musl/include/unistd.h
+index 5d32ef5..2286f01 100644
+--- a/libc-top-half/musl/include/unistd.h
++++ b/libc-top-half/musl/include/unistd.h
+@@ -280,8 +280,10 @@ int syncfs(int);
+ int euidaccess(const char *, int);
+ int eaccess(const char *, int);
+ ssize_t copy_file_range(int, off_t *, int, off_t *, size_t, unsigned);
+-pid_t gettid(void);
+ #endif
++pid_t gettid(void);
++#else
++pid_t gettid(void);
+ #endif
+ 
+ #if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)

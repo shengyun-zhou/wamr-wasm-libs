@@ -45,3 +45,10 @@ pid_t getpid() {
     }
     return g_pid;
 }
+
+pid_t gettid() {
+    uint32_t tid = 0;
+    uint32_t buf_len = sizeof(tid);
+    wamr_ext_sysctl("sysinfo.tid", &tid, &buf_len);
+    return tid;
+}
