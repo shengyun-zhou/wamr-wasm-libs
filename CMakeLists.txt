@@ -113,7 +113,7 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/pthread.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/wamr_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/sysconf.c
-        ${WAMR_EXT_LIBC_ROOT_DIR}/src/cxa_exception.c
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/cxxabi.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/user_group.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/string.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/utility.c

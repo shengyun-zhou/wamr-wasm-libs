@@ -13,12 +13,55 @@
 
 _Thread_local struct tls_data __g_tls_data;
 
+struct pthread_cleanup_handler_stacknode {
+    struct pthread_cleanup_handler_stacknode* next_node;
+    void (*routine)(void*);
+    void *arg;
+};
+
+void __pthread_exit_cleanup(int from_func_pthread_exit) {
+    while (__g_tls_data.cleanup_handler_stacktop) {
+        // Don't execute cleanup functions if this thread don't exit by calling pthread_exit()
+        pthread_cleanup_pop(from_func_pthread_exit);
+    }
+    while (__g_tls_data.cxx_dtor_stacktop) {
+        struct cxx_dtor_stacknode* p_node = __g_tls_data.cxx_dtor_stacktop;
+        __g_tls_data.cxx_dtor_stacktop = __g_tls_data.cxx_dtor_stacktop->next_node;
+        p_node->dtor_func(p_node->arg);
+        free(p_node);
+    }
+    if (__g_tls_data.thread_routine_bundle) {
+        free(__g_tls_data.thread_routine_bundle);
+        __g_tls_data.thread_routine_bundle = NULL;
+    }
+}
+
 int32_t __imported_pthread_create(uint32_t*, void*, void*, void*) __attribute__((
     __import_name__("pthread_create")
 ));
 
+struct pthread_routine_bundle {
+    void*(*user_func)(void*);
+    void* user_arg;
+};
+
+void __pthread_routine(void* arg) {
+    struct pthread_routine_bundle* p_bundle = arg;
+    __g_tls_data.thread_routine_bundle = p_bundle;
+    p_bundle->user_func(p_bundle->user_arg);
+    __pthread_exit_cleanup(0);
+}
+
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*func)(void*), void* arg) {
-    return __imported_pthread_create(thread, (void*)attr, func, arg);
+    if (!func)
+        return EINVAL;
+    struct pthread_routine_bundle* p_bundle = malloc(sizeof(struct pthread_routine_bundle));
+    p_bundle->user_func = func;
+    p_bundle->user_arg = arg;
+    int ret = __imported_pthread_create(thread, (void*)attr, __pthread_routine, p_bundle);
+    if (ret != 0)
+        free(p_bundle);
+    return ret;
 }
 
 int32_t __imported_pthread_detach(uint32_t) __attribute__((
@@ -320,7 +363,7 @@ int pthread_setcanceltype(int type, int *oldtype) {
 }
 
 void pthread_cleanup_push(void (*routine)(void *), void *arg) {
-    struct pthread_cleanup_handler_stacknode* new_node = (struct pthread_cleanup_handler_stacknode*)malloc(sizeof(struct pthread_cleanup_handler_stacknode));
+    struct pthread_cleanup_handler_stacknode* new_node = malloc(sizeof(struct pthread_cleanup_handler_stacknode));
     new_node->next_node = __g_tls_data.cleanup_handler_stacktop;
     new_node->routine = routine;
     new_node->arg = arg;
@@ -342,8 +385,7 @@ void __imported_pthread_exit(void*) __attribute__((
 ));
 
 void pthread_exit(void *retval) {
-    while (__g_tls_data.cleanup_handler_stacktop)
-        pthread_cleanup_pop(1);
+    __pthread_exit_cleanup(1);
     __imported_pthread_exit(retval);
 }
 
