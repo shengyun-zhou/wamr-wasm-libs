@@ -1,0 +1,30 @@
+diff --git a/libc-bottom-half/headers/public/__errno.h b/libc-bottom-half/headers/public/__errno.h
+index 4fd983a..ac2d71b 100644
+--- a/libc-bottom-half/headers/public/__errno.h
++++ b/libc-bottom-half/headers/public/__errno.h
+@@ -5,13 +5,8 @@
+ extern "C" {
+ #endif
+ 
+-#ifdef __cplusplus
+-extern thread_local int errno;
+-#else
+-extern _Thread_local int errno;
+-#endif
+-
+-#define errno errno
++int *__errno_location(void);
++#define errno (*__errno_location())
+ 
+ #ifdef __cplusplus
+ }
+diff --git a/libc-bottom-half/cloudlibc/src/libc/errno/errno.c b/libc-bottom-half/cloudlibc/src/libc/errno/errno.c
+index d7a27f3..9fbbb28 100644
+--- a/libc-bottom-half/cloudlibc/src/libc/errno/errno.c
++++ b/libc-bottom-half/cloudlibc/src/libc/errno/errno.c
+@@ -83,5 +83,3 @@ static_assert(ESTALE == __WASI_ERRNO_STALE, "Value mismatch");
+ static_assert(ETIMEDOUT == __WASI_ERRNO_TIMEDOUT, "Value mismatch");
+ static_assert(ETXTBSY == __WASI_ERRNO_TXTBSY, "Value mismatch");
+ static_assert(EXDEV == __WASI_ERRNO_XDEV, "Value mismatch");
+-
+-thread_local int errno = 0;

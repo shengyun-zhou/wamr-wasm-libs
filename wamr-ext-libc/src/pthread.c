@@ -5,10 +5,13 @@
 #include <errno.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include "../internal/tls_data.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-attributes"
 #define PTHREAD_EXT_MODULE "pthread_ext"
+
+_Thread_local struct tls_data __g_tls_data;
 
 int32_t __imported_pthread_create(uint32_t*, void*, void*, void*) __attribute__((
     __import_name__("pthread_create")
@@ -316,26 +319,18 @@ int pthread_setcanceltype(int type, int *oldtype) {
     return 0;
 }
 
-struct cleanup_handler_stacknode {
-    struct cleanup_handler_stacknode* next_node;
-    void (*routine)(void *);
-    void *arg;
-};
-
-_Thread_local struct cleanup_handler_stacknode* __thread_cleanup_handler_stacktop = NULL;
-
 void pthread_cleanup_push(void (*routine)(void *), void *arg) {
-    struct cleanup_handler_stacknode* new_node = (struct cleanup_handler_stacknode*)malloc(sizeof(struct cleanup_handler_stacknode));
-    new_node->next_node = __thread_cleanup_handler_stacktop;
+    struct pthread_cleanup_handler_stacknode* new_node = (struct pthread_cleanup_handler_stacknode*)malloc(sizeof(struct pthread_cleanup_handler_stacknode));
+    new_node->next_node = __g_tls_data.cleanup_handler_stacktop;
     new_node->routine = routine;
     new_node->arg = arg;
-    __thread_cleanup_handler_stacktop = new_node;
+    __g_tls_data.cleanup_handler_stacktop = new_node;
 }
 
 void pthread_cleanup_pop(int execute) {
-    if (__thread_cleanup_handler_stacktop) {
-        struct cleanup_handler_stacknode* p_node = __thread_cleanup_handler_stacktop;
-        __thread_cleanup_handler_stacktop = __thread_cleanup_handler_stacktop->next_node;
+    if (__g_tls_data.cleanup_handler_stacktop) {
+        struct pthread_cleanup_handler_stacknode* p_node = __g_tls_data.cleanup_handler_stacktop;
+        __g_tls_data.cleanup_handler_stacktop = __g_tls_data.cleanup_handler_stacktop->next_node;
         if (execute)
             p_node->routine(p_node->arg);
         free(p_node);
@@ -347,7 +342,7 @@ void __imported_pthread_exit(void*) __attribute__((
 ));
 
 void pthread_exit(void *retval) {
-    while (__thread_cleanup_handler_stacktop)
+    while (__g_tls_data.cleanup_handler_stacktop)
         pthread_cleanup_pop(1);
     __imported_pthread_exit(retval);
 }

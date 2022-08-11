@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wamr_ext.h>
+#include "../internal/tls_data.h"
 
 int getpagesize() { return sysconf(_SC_PAGESIZE); }
 
@@ -32,8 +33,11 @@ FILE *popen(const char *command, const char *type) {
 int system(const char *cmd) { return 127; }
 int pclose(FILE *stream) { return 0; }
 
-_Thread_local int __tls_h_errno = 0;
-int *__h_errno_location() { return &__tls_h_errno; }
+int *__errno_location() { return &__g_tls_data.tls_errno; }
+int *__h_errno_location() { return &__g_tls_data.tls_h_errno; }
+struct __wasilibc_find_path_tls_data* __wasilibc_find_path_tls_data_location() {
+    return &__g_tls_data.wasi_find_path_data;
+}
 
 pid_t getpid() {
     static pid_t g_pid = 0;
@@ -47,8 +51,11 @@ pid_t getpid() {
 }
 
 pid_t gettid() {
-    uint32_t tid = 0;
-    uint32_t buf_len = sizeof(tid);
-    wamr_ext_sysctl("sysinfo.tid", &tid, &buf_len);
-    return tid;
+    if (__g_tls_data.cache_tid == 0) {
+        uint32_t tid = 0;
+        uint32_t buf_len = sizeof(tid);
+        wamr_ext_sysctl("sysinfo.tid", &tid, &buf_len);
+        __g_tls_data.cache_tid = tid;
+    }
+    return __g_tls_data.cache_tid;
 }
