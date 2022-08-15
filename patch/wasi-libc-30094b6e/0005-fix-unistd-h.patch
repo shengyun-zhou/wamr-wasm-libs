@@ -56,3 +56,18 @@ index 5d32ef5..2286f01 100644
  #endif
  
  #if defined(_LARGEFILE64_SOURCE) || defined(_GNU_SOURCE)
+diff --git a/libc-top-half/musl/include/unistd.h b/libc-top-half/musl/include/unistd.h
+index 2286f01..0885d03 100644
+--- a/libc-top-half/musl/include/unistd.h
++++ b/libc-top-half/musl/include/unistd.h
+@@ -51,9 +51,9 @@ int pipe2(int [2], int);
+ #endif
+ int close(int);
+ int posix_close(int, int);
+-#ifdef __wasilibc_unmodified_upstream /* WASI has no dup */
+ int dup(int);
+ int dup2(int, int);
++#ifdef __wasilibc_unmodified_upstream
+ int dup3(int, int, int);
+ #endif
+ off_t lseek(int, off_t, int);

@@ -117,6 +117,7 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/user_group.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/string.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/utility.c
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/filesystem.c
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
