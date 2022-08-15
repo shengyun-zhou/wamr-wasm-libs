@@ -96,6 +96,8 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/network/res_state.c
         ${WASI_LIBC_TOP_HALF_SRC}/network/herror.c
         ${WASI_LIBC_TOP_HALF_SRC}/network/hstrerror.c
+
+        ${WASI_LIBC_TOP_HALF_SRC}/misc/realpath.c
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include
