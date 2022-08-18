@@ -60,7 +60,7 @@ int32_t __imported_fd_statvfs(int32_t fd, struct wamr_statvfs *buf) __attribute_
 ));
 
 int fstatvfs(int fd, struct statvfs *buf) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_statvfs, internal_vfs_buf);
+    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_statvfs, internal_vfs_buf, 0);
     int32_t err = __imported_fd_statvfs(fd, &internal_vfs_buf);
     if (err != 0) {
         errno = err;
