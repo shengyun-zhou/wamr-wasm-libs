@@ -8,7 +8,7 @@ index a5be6e5..86f5fe9 100644
  struct sockaddr_un {
 -    _Alignas(max_align_t) sa_family_t sun_family;
 +    sa_family_t sun_family;
-+    char sun_path[108];
++    char sun_path[40];
  };
  
  #endif
