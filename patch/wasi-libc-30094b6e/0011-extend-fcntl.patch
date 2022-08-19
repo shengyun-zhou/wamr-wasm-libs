@@ -1,0 +1,49 @@
+diff --git a/libc-bottom-half/cloudlibc/src/libc/fcntl/fcntl.c b/libc-bottom-half/cloudlibc/src/libc/fcntl/fcntl.c
+index 5d4055d..7a5f3c8 100644
+--- a/libc-bottom-half/cloudlibc/src/libc/fcntl/fcntl.c
++++ b/libc-bottom-half/cloudlibc/src/libc/fcntl/fcntl.c
+@@ -7,6 +7,8 @@
+ #include <fcntl.h>
+ #include <stdarg.h>
+ 
++extern int __wamr_ext_fcntl(int fd, int cmd, va_list args);
++
+ int fcntl(int fildes, int cmd, ...) {
+   switch (cmd) {
+     case F_GETFD:
+@@ -55,8 +57,12 @@ int fcntl(int fildes, int cmd, ...) {
+       }
+       return 0;
+     }
+-    default:
+-      errno = EINVAL;
+-      return -1;
++    default: {
++      va_list ap;
++      va_start(ap, cmd);
++      int ret = __wamr_ext_fcntl(fildes, cmd, ap);
++      va_end(ap);
++      return ret;
++    }
+   }
+ }
+
+diff --git a/libc-bottom-half/headers/public/__header_fcntl.h b/libc-bottom-half/headers/public/__header_fcntl.h
+index 04252ac..db97f4e 100644
+--- a/libc-bottom-half/headers/public/__header_fcntl.h
++++ b/libc-bottom-half/headers/public/__header_fcntl.h
+@@ -49,6 +49,14 @@
+ #define F_GETFL (3)
+ #define F_SETFL (4)
+ 
++#define F_GETLK ((1 << 8) | 1)
++#define F_SETLK ((1 << 8) | 2)
++#define F_SETLKW ((1 << 8) | 3)
++
++#define F_RDLCK 0
++#define F_WRLCK 1
++#define F_UNLCK 2
++
+ #define FD_CLOEXEC (1)
+ 
+ #define AT_EACCESS          (0x0)

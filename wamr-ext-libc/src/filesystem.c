@@ -8,6 +8,8 @@
 #include <sys/statvfs.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include "../internal/priv_struct_header.h"
 
 #pragma clang diagnostic push
@@ -68,6 +70,91 @@ int fstatvfs(int fd, struct statvfs *buf) {
     }
     __wamr_statvfs_to_statvfs(&internal_vfs_buf, buf);
     return 0;
+}
+
+struct wamr_fcntl_struct_header {
+    int32_t cmd;
+    int32_t ret_value;
+};
+
+struct wamr_fcntl_generic {
+    wamr_wasi_struct_header _s_header;
+    struct wamr_fcntl_struct_header fcntl_header;
+};
+
+struct wamr_fcntl_flock {
+    wamr_wasi_struct_header _s_header;
+    struct wamr_fcntl_struct_header fcntl_header;
+    int16_t l_type;
+    int16_t l_whence;
+    int64_t l_start;
+    int64_t l_len;
+};
+
+int32_t __imported_fd_fcntl(int32_t fd, struct wamr_fcntl_generic* buf) __attribute__((
+    __import_module__(FS_EXT_MODULE),
+    __import_name__("fd_fcntl")
+));
+
+#define DEFINE_FCNTL_STRUCT_VAR(struct_name, var_name, version, cmd) \
+    DEFINE_WAMR_WASI_STRUCT_VAR(struct_name, var_name, version); (var_name).fcntl_header.cmd = cmd
+
+int __wamr_ext_fcntl(int fd, int cmd, va_list args) {
+    int ret;
+    switch (cmd) {
+        case F_GETLK:
+        case F_SETLK:
+        case F_SETLKW: {
+            struct flock* p_flock = va_arg(args, struct flock*);
+            DEFINE_FCNTL_STRUCT_VAR(wamr_fcntl_flock, flock_ctrl, 0, cmd);
+            flock_ctrl.l_type = p_flock->l_type;
+            flock_ctrl.l_whence = p_flock->l_whence;
+            flock_ctrl.l_start = p_flock->l_start;
+            flock_ctrl.l_len = p_flock->l_len;
+            int32_t err = __imported_fd_fcntl(fd, (struct wamr_fcntl_generic*)&flock_ctrl);
+            if (err != 0) {
+                errno = err;
+                ret = -1;
+                break;
+            }
+            ret = flock_ctrl.fcntl_header.ret_value;
+            if (cmd == F_GETLK) {
+                p_flock->l_pid = 0;
+                p_flock->l_type = flock_ctrl.l_type;
+                p_flock->l_whence = flock_ctrl.l_whence;
+                p_flock->l_start = flock_ctrl.l_start;
+                p_flock->l_len = flock_ctrl.l_len;
+            }
+            break;
+        }
+        default:
+            errno = EINVAL;
+            ret = -1;
+    }
+    return ret;
+}
+
+int flock(int fd, int operation) {
+    // Emulate as a call to fcntl().
+    // Ref: glibc(https://code.woboq.org/userspace/glibc/sysdeps/posix/flock.c.html)
+    struct flock lbuf;
+    switch (operation & (~LOCK_NB)) {
+        case LOCK_SH:
+            lbuf.l_type = F_RDLCK;
+            break;
+        case LOCK_EX:
+            lbuf.l_type = F_WRLCK;
+            break;
+        case LOCK_UN:
+            lbuf.l_type = F_UNLCK;
+            break;
+        default:
+            errno = EINVAL;
+            return -1;
+    }
+    lbuf.l_whence = SEEK_SET;
+    lbuf.l_start = lbuf.l_len = 0L;
+    return fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &lbuf);
 }
 
 #pragma clang diagnostic pop
