@@ -21,8 +21,8 @@ extern "C" {
 #include <__struct_msghdr.h>
 
 struct linger {
-	int l_onoff;
-	int l_linger;
+	int32_t l_onoff;
+	int32_t l_linger;
 };
 
 #ifndef SOCK_STREAM
@@ -36,11 +36,11 @@ struct linger {
 #endif
 
 #define PF_UNSPEC       AF_UNSPEC
-#define PF_LOCAL        AF_UNIX
-#define PF_UNIX         PF_LOCAL
+#define PF_UNIX         AF_UNIX
 #define PF_INET         AF_INET
 #define PF_INET6        AF_INET6
-#define AF_LOCAL        PF_LOCAL
+#define AF_LOCAL        AF_INET
+#define PF_LOCAL        AF_LOCAL
 
 #ifndef SO_DEBUG
 #define SO_DEBUG        1
@@ -81,10 +81,6 @@ struct linger {
 #define SO_TIMESTAMPING 37
 #endif
 
-#ifndef SOL_SOCKET
-#define SOL_SOCKET      1
-#endif
-
 #define SOL_IP          0
 #define SOL_IPV6        41
 
@@ -93,9 +89,9 @@ struct linger {
 #define MSG_NOSIGNAL  0x4000
 
 struct cmsghdr {
-	socklen_t cmsg_len;
-	int cmsg_level;
-	int cmsg_type;
+	uint32_t cmsg_len;
+	int32_t cmsg_level;
+	int32_t cmsg_type;
 };
 
 #define __CMSG_LEN(cmsg) ((cmsg)->cmsg_len)
