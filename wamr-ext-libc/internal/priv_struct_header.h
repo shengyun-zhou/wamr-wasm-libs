@@ -8,5 +8,8 @@ typedef struct wamr_wasi_struct_header {
     uint16_t struct_size;
 } wamr_wasi_struct_header;
 
+#define INIT_WAMR_WASI_STRUCT_VAR(var_name, version) \
+     (var_name)._s_header.struct_ver = version; (var_name)._s_header.struct_size = sizeof(var_name)
+
 #define DEFINE_WAMR_WASI_STRUCT_VAR(struct_name, var_name, version) \
-    struct struct_name var_name = {0}; (var_name)._s_header.struct_ver = version; (var_name)._s_header.struct_size = sizeof(var_name)
+    struct struct_name var_name = {0}; INIT_WAMR_WASI_STRUCT_VAR(var_name, version)
