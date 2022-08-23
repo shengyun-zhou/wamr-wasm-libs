@@ -9,6 +9,7 @@
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "../internal/priv_struct_header.h"
 
 #pragma clang diagnostic push
@@ -359,6 +360,173 @@ ssize_t sendmsg(int sock, const struct msghdr *message, int flags) {
         return -1;
     }
     return wamr_msghdr.ret_data_size;
+}
+
+#define WAMR_IF_NAME_MAX_LEN 32
+_Static_assert(WAMR_IF_NAME_MAX_LEN >= IF_NAMESIZE, "WAMR_IF_NAME_MAX_LEN must >= IF_NAMESIZE");
+
+struct _wamr_ifaddr_buf {
+    struct ifaddrs ifa_hdr;
+    char ifa_name[WAMR_IF_NAME_MAX_LEN];
+    struct sockaddr_storage ifa_addr;
+    struct sockaddr_storage ifa_netmask;
+    struct sockaddr_storage ifu_broadaddr;
+    struct ifaddrs_extdata ifa_extdata;
+};
+
+struct wamr_wasi_ifaddr {
+    char ifa_name[WAMR_IF_NAME_MAX_LEN];
+    uint32_t ifa_flags;
+    struct wamr_wasi_sockaddr_storage ifa_addr;
+    struct wamr_wasi_sockaddr_storage ifa_netmask;
+    struct wamr_wasi_sockaddr_storage ifu_broadaddr;
+    uint8_t ifa_hwaddr[6];
+    uint32_t ifa_ifindex;
+};
+
+struct wamr_wasi_ifaddrs_req {
+    struct wamr_wasi_struct_header _s_header;
+    struct wamr_wasi_ifaddr* ret_ifaddrs;
+    uint32_t ret_ifaddr_cnt;
+};
+
+int32_t __imported_sock_getifaddrs(struct wamr_wasi_ifaddrs_req*) __attribute__((
+    __import_module__(SOCKET_EXT_MODULE),
+    __import_name__("sock_getifaddrs")
+));
+
+int getifaddrs(struct ifaddrs **ifap) {
+    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    int32_t err = __imported_sock_getifaddrs(&req);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    if (req.ret_ifaddr_cnt == 0) {
+        *ifap = NULL;
+        return 0;
+    }
+    struct _wamr_ifaddr_buf* ifaddrs_buf = malloc(sizeof(struct _wamr_ifaddr_buf) * req.ret_ifaddr_cnt);
+    for (uint32_t i = 0; i < req.ret_ifaddr_cnt; i++) {
+        memcpy(ifaddrs_buf[i].ifa_name, req.ret_ifaddrs[i].ifa_name, sizeof(ifaddrs_buf[i].ifa_name));
+        socklen_t _templen = sizeof(struct sockaddr_storage);
+        ifaddrs_buf[i].ifa_addr.ss_family = AF_UNSPEC;
+        __wamr_wasi_sockaddr_storage_to_sockaddr(&req.ret_ifaddrs[i].ifa_addr, (struct sockaddr*)&ifaddrs_buf[i].ifa_addr, &_templen);
+
+        _templen = sizeof(struct sockaddr_storage);
+        ifaddrs_buf[i].ifa_netmask.ss_family = AF_UNSPEC;
+        __wamr_wasi_sockaddr_storage_to_sockaddr(&req.ret_ifaddrs[i].ifa_netmask, (struct sockaddr*)&ifaddrs_buf[i].ifa_netmask, &_templen);
+
+        _templen = sizeof(struct sockaddr_storage);
+        ifaddrs_buf[i].ifu_broadaddr.ss_family = AF_UNSPEC;
+        __wamr_wasi_sockaddr_storage_to_sockaddr(&req.ret_ifaddrs[i].ifu_broadaddr, (struct sockaddr*)&ifaddrs_buf[i].ifu_broadaddr, &_templen);
+
+        memcpy(ifaddrs_buf[i].ifa_extdata.ifa_hwaddr, req.ret_ifaddrs[i].ifa_hwaddr, 6);
+        ifaddrs_buf[i].ifa_extdata.ifa_ifindex = req.ret_ifaddrs[i].ifa_ifindex;
+
+        ifaddrs_buf[i].ifa_hdr.ifa_name = ifaddrs_buf[i].ifa_name;
+        ifaddrs_buf[i].ifa_hdr.ifa_flags = req.ret_ifaddrs[i].ifa_flags;
+        ifaddrs_buf[i].ifa_hdr.ifa_addr = ifaddrs_buf[i].ifa_addr.ss_family == AF_UNSPEC ? NULL : (struct sockaddr*)&ifaddrs_buf[i].ifa_addr;
+        ifaddrs_buf[i].ifa_hdr.ifa_netmask = ifaddrs_buf[i].ifa_netmask.ss_family == AF_UNSPEC ? NULL : (struct sockaddr*)&ifaddrs_buf[i].ifa_netmask;
+        ifaddrs_buf[i].ifa_hdr.ifa_broadaddr = ifaddrs_buf[i].ifu_broadaddr.ss_family == AF_UNSPEC ? NULL : (struct sockaddr*)&ifaddrs_buf[i].ifu_broadaddr;
+        ifaddrs_buf[i].ifa_hdr.ifa_data = &ifaddrs_buf[i].ifa_extdata;
+        ifaddrs_buf[i].ifa_hdr.ifa_next = (i + 1 == req.ret_ifaddr_cnt) ? NULL : &ifaddrs_buf[i + 1].ifa_hdr;
+    }
+    *ifap = &ifaddrs_buf[0].ifa_hdr;
+    free(req.ret_ifaddrs);
+    return 0;
+}
+
+void freeifaddrs(struct ifaddrs *ifa) {
+    if (!ifa)
+        return;
+    free(ifa);
+}
+
+unsigned int if_nametoindex(const char *ifname) {
+    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    int32_t err = __imported_sock_getifaddrs(&req);
+    if (err != 0) {
+        errno = err;
+        return 0;
+    }
+    if (req.ret_ifaddr_cnt == 0) {
+        errno = ENODEV;
+        return 0;
+    }
+    unsigned int idx = 0;
+    for (uint32_t i = 0; i < req.ret_ifaddr_cnt; i++) {
+        if (strcmp(req.ret_ifaddrs[i].ifa_name, ifname) == 0) {
+            idx = req.ret_ifaddrs[i].ifa_ifindex;
+            break;
+        }
+    }
+    free(req.ret_ifaddrs);
+    if (idx == 0)
+        errno = ENODEV;
+    return idx;
+}
+
+char *if_indextoname(unsigned int ifindex, char *ifname) {
+    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    int32_t err = __imported_sock_getifaddrs(&req);
+    if (err != 0) {
+        errno = err;
+        return NULL;
+    }
+    if (req.ret_ifaddr_cnt == 0) {
+        errno = ENXIO;
+        return NULL;
+    }
+    char* ret = NULL;
+    for (uint32_t i = 0; i < req.ret_ifaddr_cnt; i++) {
+        if (ifindex == req.ret_ifaddrs[i].ifa_ifindex) {
+            snprintf(ifname, IF_NAMESIZE, "%s", req.ret_ifaddrs[i].ifa_name);
+            ret = ifname;
+            break;
+        }
+    }
+    free(req.ret_ifaddrs);
+    if (!ret)
+        errno = ENXIO;
+    return ret;
+}
+
+struct if_nameindex *if_nameindex(void) {
+    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    int32_t err = __imported_sock_getifaddrs(&req);
+    if (err != 0) {
+        errno = err;
+        return NULL;
+    }
+    struct if_nameindex* ret_ni = malloc(sizeof(struct if_nameindex) * (req.ret_ifaddr_cnt + 1));
+    uint32_t ret_cnt = 0;
+    for (uint32_t i = 0; i < req.ret_ifaddr_cnt; i++) {
+        bool idx_exist = false;
+        for (uint32_t j = 0; j < ret_cnt; j++) {
+            if (req.ret_ifaddrs[i].ifa_ifindex == ret_ni[j].if_index) {
+                idx_exist = true;
+                break;
+            }
+        }
+        if (!idx_exist) {
+            ret_ni[ret_cnt].if_index = req.ret_ifaddrs[i].ifa_ifindex;
+            ret_ni[ret_cnt].if_name = strdup(req.ret_ifaddrs[i].ifa_name);
+            ret_cnt++;
+        }
+    }
+    free(req.ret_ifaddrs);
+    ret_ni[ret_cnt].if_index = 0;
+    ret_ni[ret_cnt].if_name = NULL;
+    return ret_ni;
+}
+
+void if_freenameindex(struct if_nameindex *ptr) {
+    if (!ptr)
+        return;
+    for (struct if_nameindex* p = ptr; !(p->if_index == 0 && p->if_name == NULL); p++)
+        free(p->if_name);
+    free(ptr);
 }
 
 #pragma clang diagnostic pop
