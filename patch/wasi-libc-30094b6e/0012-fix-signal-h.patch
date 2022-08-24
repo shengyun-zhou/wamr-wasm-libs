@@ -1,0 +1,51 @@
+diff --git a/libc-top-half/musl/include/signal.h b/libc-top-half/musl/include/signal.h
+index 75b5e55..c749a8c 100644
+--- a/libc-top-half/musl/include/signal.h
++++ b/libc-top-half/musl/include/signal.h
+@@ -19,6 +19,7 @@ extern "C" {
+ #ifdef _GNU_SOURCE
+ #define __ucontext ucontext
+ #endif
++#endif
+ 
+ #define __NEED_size_t
+ #define __NEED_pid_t
+@@ -47,7 +48,6 @@ extern "C" {
+ #define SI_KERNEL 128
+ 
+ typedef struct sigaltstack stack_t;
+-#endif
+ 
+ #endif
+ 
+@@ -239,10 +239,8 @@ int sigtimedwait(const sigset_t *__restrict, siginfo_t *__restrict, const struct
+ int sigqueue(pid_t, int, union sigval);
+ #endif
+ 
+-#ifdef __wasilibc_unmodified_upstream /* WASI has no threads yet */
+ int pthread_sigmask(int, const sigset_t *__restrict, sigset_t *__restrict);
+ int pthread_kill(pthread_t, int);
+-#endif
+ 
+ #ifdef __wasilibc_unmodified_upstream /* WASI has no siginfo */
+ void psiginfo(const siginfo_t *, const char *);
+diff --git a/libc-top-half/musl/include/signal.h b/libc-top-half/musl/include/signal.h
+index c749a8c..436d5ea 100644
+--- a/libc-top-half/musl/include/signal.h
++++ b/libc-top-half/musl/include/signal.h
+@@ -222,6 +222,7 @@ int __libc_current_sigrtmax(void);
+ 
+ #ifdef __wasilibc_unmodified_upstream /* WASI has no signals */
+ int kill(pid_t, int);
++#endif
+ 
+ int sigemptyset(sigset_t *);
+ int sigfillset(sigset_t *);
+@@ -230,6 +231,7 @@ int sigdelset(sigset_t *, int);
+ int sigismember(const sigset_t *, int);
+ 
+ int sigprocmask(int, const sigset_t *__restrict, sigset_t *__restrict);
++#ifdef __wasilibc_unmodified_upstream
+ int sigsuspend(const sigset_t *);
+ int sigaction(int, const struct sigaction *__restrict, struct sigaction *__restrict);
+ int sigpending(sigset_t *);
