@@ -11,7 +11,6 @@ if [ ! -f "$SOURCE_DIR/$SOURCE_TARBALL" ]; then
     mv "$SOURCE_DIR/$SOURCE_TARBALL.tmp" "$SOURCE_DIR/$SOURCE_TARBALL"
 fi
 BUILD_DIR="wasi-libc"
-OUTPUT_DIR="$(pwd)/sysroot"
 (test -d $BUILD_DIR && rm -rf $BUILD_DIR) || true
 mkdir -p $BUILD_DIR
 tar xf "$SOURCE_DIR/$SOURCE_TARBALL" -C $BUILD_DIR --strip 1
@@ -27,10 +26,11 @@ cp -r libc-top-half/musl/include libc-top-half/musl/include.bak
 export CC=${CC:-${CROSS_PREFIX}-clang}
 
 make CC="$CC" AR="${CROSS_PREFIX}-ar" NM="${CROSS_PREFIX}-nm" -j$(cpu_count)
-mkdir -p "$OUTPUT_DIR"
-cp -r sysroot/* "$OUTPUT_DIR"
-LIBDIR="$OUTPUT_DIR/lib/wasm32-wasi"
+
 # Merge some emulated libs into libc
-"${CROSS_PREFIX}-ar" qcsL "$LIBDIR/libc.a" "$LIBDIR/libwasi-emulated-signal.a"
-"${CROSS_PREFIX}-ar" qcsL "$LIBDIR/libc.a" "$LIBDIR/libwasi-emulated-mman.a"
+"${CROSS_PREFIX}-ar" qcsL "sysroot/$SYSROOT_LIBDIR_PREFIX/libc.a" "sysroot/$SYSROOT_LIBDIR_PREFIX/libwasi-emulated-signal.a"
+"${CROSS_PREFIX}-ar" qcsL "sysroot/$SYSROOT_LIBDIR_PREFIX/libc.a" "sysroot/$SYSROOT_LIBDIR_PREFIX/libwasi-emulated-mman.a"
+
+mkdir -p "$OUTPUT_SYSROOT"
+cp -r sysroot/* "$OUTPUT_SYSROOT"
 
