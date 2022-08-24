@@ -10,6 +10,8 @@
 #include <net/if.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "../internal/priv_struct_header.h"
 
 #pragma clang diagnostic push
@@ -528,5 +530,67 @@ void if_freenameindex(struct if_nameindex *ptr) {
         free(p->if_name);
     free(ptr);
 }
+
+void __socket_set_blocking(int sockfd, bool blocking) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags == -1)
+        return;
+    if (!blocking)
+        fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
+    else
+        fcntl(sockfd, F_SETFL, flags & (~O_NONBLOCK));
+}
+
+int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
+    int lsock = socket(domain, type, protocol);
+    int csock = socket(domain, type, protocol);
+    do {
+        if (lsock == -1 || csock == -1)
+            break;
+        uint16_t random_port = (random() % 16284U) + 49152U;
+        struct sockaddr_in laddr = {0};
+        laddr.sin_family = AF_INET;
+        laddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        {
+            int r;
+            for (r = 0; r < 100; r++, random_port++) {
+                laddr.sin_port = htons(random_port);
+                if (bind(lsock, (struct sockaddr*)&laddr, sizeof(laddr)) == 0)
+                    break;
+            }
+            if (r >= 100)
+                break;
+        }
+        if ((type & SOCK_STREAM) == SOCK_STREAM) {
+            if (listen(lsock, 4) != 0)
+                break;
+        }
+        __socket_set_blocking(csock, false);
+        int connret = connect(csock, (struct sockaddr*)&laddr, sizeof(laddr));
+        if (connret != 0) {
+            int err = errno;
+            if (err != EAGAIN && err != EWOULDBLOCK && err != EINPROGRESS)
+                break;
+        }
+        if ((type & SOCK_STREAM) == SOCK_STREAM) {
+            int ssock = accept(lsock, NULL, NULL);
+            if (ssock == -1)
+                break;
+            close(lsock);
+            socket_vector[0] = ssock; socket_vector[1] = csock;
+        } else {
+            socket_vector[0] = lsock; socket_vector[1] = csock;
+        }
+        if ((type & SOCK_NONBLOCK) != SOCK_NONBLOCK)
+            __socket_set_blocking(csock, true);
+        return 0;
+    } while (false);
+    if (lsock != -1)
+        close(lsock);
+    if (csock != -1)
+        close(csock);
+    return -1;
+}
+
 
 #pragma clang diagnostic pop

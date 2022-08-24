@@ -134,6 +134,8 @@ ssize_t recvmsg (int, struct msghdr *, int);
 int getsockopt (int, int, int, void *__restrict, socklen_t *__restrict);
 int setsockopt (int, int, int, const void *, socklen_t);
 
+int socketpair(int domain, int type, int protocol, int socket_vector[2]);
+
 #ifdef __cplusplus
 }
 #endif
