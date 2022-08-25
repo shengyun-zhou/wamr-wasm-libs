@@ -17,3 +17,6 @@ export STRIP=${CROSS_PREFIX}-strip
 # Pretend to be Emscripten for autoconf
 export AUTOCONF_FLAGS="--host=wasm32-emscripten --prefix=$OUTPUT_SYSROOT --libdir=$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX
   --enable-static --disable-shared"
+
+export CMAKE_FLAGS="-G Ninja -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_MODULE_PATH=$(pwd)/../cmake -DCMAKE_BUILD_TYPE=Release
+  -DCMAKE_VERBOSE_MAKEFILE=1 -DCMAKE_INSTALL_PREFIX=$OUTPUT_SYSROOT -DCMAKE_INSTALL_LIBDIR=$SYSROOT_LIBDIR_PREFIX"

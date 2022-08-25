@@ -3,3 +3,4 @@ export ZLIB_VERSION=1.2.12
 export BZIP2_VERSION=1.0.8
 export XZ_VERSION=5.2.6
 export ZSTD_VERSION=1.5.2
+export BROTLI_VERSION=1.0.9

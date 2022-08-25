@@ -7,7 +7,9 @@ source config.sh
 ./build-zlib.sh
 ./build-lzma.sh
 ./build-zstd.sh
+./build-brotli.sh
 
 # Clean up
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
 rm -f "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/"*.la || true
+rm -rf "$OUTPUT_SYSROOT/bin" || true
