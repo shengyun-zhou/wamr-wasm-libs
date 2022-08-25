@@ -6,6 +6,7 @@ source config.sh
 ./build-bzip2.sh
 ./build-zlib.sh
 ./build-lzma.sh
+./build-zstd.sh
 
 # Clean up
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
