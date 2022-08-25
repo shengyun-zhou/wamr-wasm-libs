@@ -1,0 +1,14 @@
+diff --git a/nanohttp.c b/nanohttp.c
+index 2eafd3f..73ec60f 100644
+--- a/nanohttp.c
++++ b/nanohttp.c
+@@ -589,7 +589,9 @@ xmlNanoHTTPRecv(xmlNanoHTTPCtxtPtr ctxt)
+                     break;
+ 
+                 case ECONNRESET:
++#if defined(ESHUTDOWN)
+                 case ESHUTDOWN:
++#endif
+                     return (0);
+ 
+                 default:

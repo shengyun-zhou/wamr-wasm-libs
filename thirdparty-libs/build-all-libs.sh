@@ -8,8 +8,10 @@ source config.sh
 ./build-lzma.sh
 ./build-zstd.sh
 ./build-brotli.sh
+./build-libxml2.sh
 
 # Clean up
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
+rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/cmake" || true
 rm -f "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/"*.la || true
 rm -rf "$OUTPUT_SYSROOT/bin" || true
