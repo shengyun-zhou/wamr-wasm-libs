@@ -121,6 +121,7 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/utility.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/filesystem.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/socket_api.c
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/signal.c
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
