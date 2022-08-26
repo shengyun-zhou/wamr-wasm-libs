@@ -12,6 +12,7 @@ source config.sh
 ./build-libpng.sh
 ./build-openssl.sh
 ./build-nghttp2.sh
+./build-cares.sh
 
 # Clean up
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
