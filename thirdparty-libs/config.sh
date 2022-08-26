@@ -15,7 +15,7 @@ export AR=${CROSS_PREFIX}-ar
 export RANLIB=${CROSS_PREFIX}-ranlib
 export STRIP=${CROSS_PREFIX}-strip
 # Pretend to be Emscripten for autoconf
-export AUTOCONF_FLAGS="--host=wasm32-emscripten --prefix=$OUTPUT_SYSROOT --libdir=$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX
+export AUTOCONF_FLAGS="--host=wasm32-emscripten --prefix=$OUTPUT_SYSROOT --libdir=$OUTPUT_SYSROOT_LIBDIR
   --enable-static --disable-shared"
 
 export CMAKE_FLAGS="-G Ninja -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_MODULE_PATH=$(pwd)/../cmake -DCMAKE_BUILD_TYPE=Release

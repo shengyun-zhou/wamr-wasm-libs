@@ -10,6 +10,7 @@ source config.sh
 ./build-brotli.sh
 ./build-libxml2.sh
 ./build-libpng.sh
+./build-openssl.sh
 
 # Clean up
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
