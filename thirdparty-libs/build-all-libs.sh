@@ -9,6 +9,7 @@ source config.sh
 ./build-zstd.sh
 ./build-brotli.sh
 ./build-libxml2.sh
+./build-libpng.sh
 
 # Clean up
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
