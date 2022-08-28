@@ -428,4 +428,20 @@ int pthread_getname_np(char *name, size_t len) {
     return __imported_pthread_getname_np(name, len);
 }
 
+int pthread_attr_init(pthread_attr_t *attr) {
+    return 0;
+}
+
+int pthread_attr_destroy(pthread_attr_t *attr) {
+    return 0;
+}
+
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize) {
+    return ENOSYS;
+}
+
+int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize) {
+    return ENOSYS;
+}
+
 #pragma clang diagnostic pop

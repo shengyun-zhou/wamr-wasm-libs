@@ -133,6 +133,11 @@ void pthread_cleanup_pop(int);
 int pthread_setname_np(const char *name);
 int pthread_getname_np(char *name, size_t len);
 
+int pthread_attr_init(pthread_attr_t *attr);
+int pthread_attr_destroy(pthread_attr_t *attr);
+int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
+int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize);
+
 #ifdef __cplusplus
 }
 #endif
