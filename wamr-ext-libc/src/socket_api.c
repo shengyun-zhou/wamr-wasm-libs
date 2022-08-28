@@ -577,6 +577,7 @@ int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
             if (ssock == -1)
                 break;
             close(lsock);
+            __socket_set_blocking(ssock, (type & SOCK_NONBLOCK) != SOCK_NONBLOCK);
             socket_vector[0] = ssock; socket_vector[1] = csock;
         } else {
             socket_vector[0] = lsock; socket_vector[1] = csock;

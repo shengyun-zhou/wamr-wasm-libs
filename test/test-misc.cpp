@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdio>
+#include <chrono>
 #include <atomic>
 #include <cstdint>
 #include <mutex>
@@ -41,6 +42,9 @@ void thread_msg(int idx, const std::string& msg) {
 static_assert(sizeof(sockaddr_un) <= sizeof(sockaddr_storage));
 
 int main() {
+    printf("Current timestamp: %llu\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    printf("Current timestamp after sleep: %llu\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     printf("PID: %u\n", getpid());
     printf("CPU count: %u\n", std::thread::hardware_concurrency());
     printf("Total memory size: %ldKB\n", sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE) / 1024);
