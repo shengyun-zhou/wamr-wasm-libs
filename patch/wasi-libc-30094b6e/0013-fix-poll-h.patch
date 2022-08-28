@@ -1,0 +1,15 @@
+diff --git a/libc-bottom-half/headers/public/__header_poll.h b/libc-bottom-half/headers/public/__header_poll.h
+index 23b36f2..9150179 100644
+--- a/libc-bottom-half/headers/public/__header_poll.h
++++ b/libc-bottom-half/headers/public/__header_poll.h
+@@ -10,6 +10,10 @@
+ #define POLLIN POLLRDNORM
+ #define POLLOUT POLLWRNORM
+ 
++#define POLLPRI 0x400
++#define POLLRDBAND POLLPRI
++#define POLLWRBAND 0x800
++
+ #define POLLERR 0x1000
+ #define POLLHUP 0x2000
+ #define POLLNVAL 0x4000
