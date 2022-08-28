@@ -1,0 +1,19 @@
+diff --git a/srclib/getdtablesize.c b/srclib/getdtablesize.c
+index 793e0f8..4a2c29b 100644
+--- a/srclib/getdtablesize.c
++++ b/srclib/getdtablesize.c
+@@ -106,6 +106,7 @@ getdtablesize (void)
+ #  define rlim_cur rlim_max
+ # endif
+ 
++#ifndef __wasm__
+ int
+ getdtablesize (void)
+ {
+@@ -120,5 +121,6 @@ getdtablesize (void)
+ 
+   return INT_MAX;
+ }
++#endif
+ 
+ #endif
