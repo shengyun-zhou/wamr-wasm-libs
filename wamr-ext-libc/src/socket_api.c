@@ -547,15 +547,31 @@ int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
     do {
         if (lsock == -1 || csock == -1)
             break;
-        uint16_t random_port = (random() % 16284U) + 49152U;
-        struct sockaddr_in laddr = {0};
-        laddr.sin_family = AF_INET;
-        laddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        uint32_t _random_num = 0;
+        getentropy(&_random_num, sizeof(_random_num));
+        if (_random_num == 0)
+            _random_num = random();
+        uint16_t random_port = (_random_num % 16284U) + 49152U;
+        struct sockaddr_storage laddr = {0};
+        laddr.ss_family = domain;
+        socklen_t laddr_len = 0;
+        if (laddr.ss_family == AF_INET) {
+            struct sockaddr_in* laddr4 = (struct sockaddr_in*)&laddr;
+            laddr4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            laddr_len = sizeof(struct sockaddr_in);
+        } else if (laddr.ss_family == AF_INET6) {
+            struct sockaddr_in6* laddr6 = (struct sockaddr_in6*)&laddr;
+            laddr6->sin6_addr.s6_addr[15] = 1;
+            laddr_len = sizeof(struct sockaddr_in6);
+        }
         {
             int r;
             for (r = 0; r < 100; r++, random_port++) {
-                laddr.sin_port = htons(random_port);
-                if (bind(lsock, (struct sockaddr*)&laddr, sizeof(laddr)) == 0)
+                if (laddr.ss_family == AF_INET)
+                    ((struct sockaddr_in*)&laddr)->sin_port = htons(random_port);
+                else if (laddr.ss_family == AF_INET6)
+                    ((struct sockaddr_in6*)&laddr)->sin6_port = htons(random_port);
+                if (bind(lsock, (struct sockaddr*)&laddr, laddr_len) == 0)
                     break;
             }
             if (r >= 100)
@@ -566,7 +582,7 @@ int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
                 break;
         }
         __socket_set_blocking(csock, false);
-        int connret = connect(csock, (struct sockaddr*)&laddr, sizeof(laddr));
+        int connret = connect(csock, (struct sockaddr*)&laddr, laddr_len);
         if (connret != 0) {
             int err = errno;
             if (err != EAGAIN && err != EWOULDBLOCK && err != EINPROGRESS)
