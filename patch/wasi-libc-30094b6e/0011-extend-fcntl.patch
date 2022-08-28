@@ -47,3 +47,19 @@ index 04252ac..db97f4e 100644
  #define FD_CLOEXEC (1)
  
  #define AT_EACCESS          (0x0)
+diff --git a/libc-bottom-half/headers/public/__header_fcntl.h b/libc-bottom-half/headers/public/__header_fcntl.h
+index db97f4e..7aa8296 100644
+--- a/libc-bottom-half/headers/public/__header_fcntl.h
++++ b/libc-bottom-half/headers/public/__header_fcntl.h
+@@ -53,6 +53,11 @@
+ #define F_SETLK ((1 << 8) | 2)
+ #define F_SETLKW ((1 << 8) | 3)
+ 
++#define F_DUPFD ((1 << 8) | 4)
++#define F_DUPFD_CLOEXEC ((1 << 8) | 5)
++#define F_GETOWN ((1 << 8) | 6)
++#define F_SETOWN ((1 << 8) | 7)
++
+ #define F_RDLCK 0
+ #define F_WRLCK 1
+ #define F_UNLCK 2
