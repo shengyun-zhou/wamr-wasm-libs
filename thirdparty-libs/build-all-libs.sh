@@ -22,3 +22,4 @@ rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/pkgconfig" || true
 rm -rf "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/cmake" || true
 rm -f "$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX/"*.la || true
 rm -rf "$OUTPUT_SYSROOT/bin" || true
+find "$OUTPUT_SYSROOT/share" -mindepth 1 -name wasm32-wasi -prune -o -exec rm -rf {} +
