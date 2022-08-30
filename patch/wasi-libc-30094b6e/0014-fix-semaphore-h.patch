@@ -1,0 +1,15 @@
+diff --git a/libc-top-half/musl/include/semaphore.h b/libc-top-half/musl/include/semaphore.h
+index 3690f49..1188634 100644
+--- a/libc-top-half/musl/include/semaphore.h
++++ b/libc-top-half/musl/include/semaphore.h
+@@ -14,9 +14,7 @@ extern "C" {
+ 
+ #define SEM_FAILED ((sem_t *)0)
+ 
+-typedef struct {
+-	volatile int __val[4*sizeof(long)/sizeof(int)];
+-} sem_t;
++typedef unsigned int sem_t;
+ 
+ int    sem_close(sem_t *);
+ int    sem_destroy(sem_t *);

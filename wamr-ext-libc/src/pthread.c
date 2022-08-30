@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <semaphore.h>
 #include "../internal/tls_data.h"
 
 #pragma clang diagnostic push
@@ -442,6 +443,108 @@ int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize) {
 
 int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize) {
     return ENOSYS;
+}
+
+int32_t __imported_sem_init(uint32_t*, uint32_t) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_init")
+));
+
+int sem_init(sem_t *sem, int pshared, unsigned int value) {
+    if (pshared != 0)
+        return ENOSYS;
+    int32_t err = __imported_sem_init(sem, value);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
+}
+
+int32_t __imported_sem_wait(uint32_t*) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_wait")
+));
+
+int sem_wait(sem_t* sem) {
+    int32_t err = __imported_sem_wait(sem);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
+}
+
+int32_t __imported_sem_timedwait(uint32_t*, uint64_t) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_timedwait")
+));
+
+int sem_timedwait(sem_t* sem, const struct timespec *abstime) {
+    if (!abstime)
+        return sem_wait(sem);
+    int32_t err = __imported_sem_timedwait(sem, __pthread_get_timeout_us(abstime));
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
+}
+
+int32_t __imported_sem_trywait(uint32_t*) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_trywait")
+));
+
+int sem_trywait(sem_t* sem) {
+    int32_t err = __imported_sem_trywait(sem);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
+}
+
+int32_t __imported_sem_post(uint32_t*) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_post")
+));
+
+int sem_post(sem_t* sem) {
+    int32_t err = __imported_sem_post(sem);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
+}
+
+int32_t __imported_sem_getvalue(uint32_t*, int32_t*) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_getvalue")
+));
+
+int sem_getvalue(sem_t* sem, int* sval) {
+    int32_t err = __imported_sem_getvalue(sem, sval);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
+}
+
+int32_t __imported_sem_destroy(uint32_t*) __attribute__((
+    __import_module__(PTHREAD_EXT_MODULE),
+    __import_name__("sem_destroy")
+));
+
+int sem_destroy(sem_t* sem) {
+    int32_t err = __imported_sem_destroy(sem);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    return 0;
 }
 
 #pragma clang diagnostic pop

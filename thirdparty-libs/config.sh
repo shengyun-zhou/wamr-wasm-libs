@@ -11,6 +11,7 @@ export LDFLAGS="-L$OUTPUT_SYSROOT_LIBDIR"
 export CC=${CROSS_PREFIX}-clang
 export CXX=${CROSS_PREFIX}-clang++
 export CPP="${CC} --driver-mode=cpp"
+export NM=${CROSS_PREFIX}-nm
 export AR=${CROSS_PREFIX}-ar
 export RANLIB=${CROSS_PREFIX}-ranlib
 export STRIP=${CROSS_PREFIX}-strip

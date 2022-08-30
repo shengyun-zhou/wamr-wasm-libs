@@ -13,6 +13,7 @@
 #include <sys/file.h>
 #include <netinet/in.h>
 #include <sys/un.h>
+#include <semaphore.h>
 
 struct MyTLSDeleter {
     MyTLSDeleter(int _threadIdx) : threadIdx(_threadIdx) {}
@@ -26,8 +27,12 @@ struct MyTLSDeleter {
 
 thread_local std::shared_ptr<uint32_t> g;
 std::recursive_mutex g_lock;
+sem_t g_sema;
+const int G_THREAD_COUNT = 4;
+const int G_SEMAPHORE_INIT_VALUE = G_THREAD_COUNT / 2;
 
 void thread_msg(int idx, const std::string& msg) {
+    sem_wait(&g_sema);
     g_lock.lock();
     g_lock.lock();
     if (!g)
@@ -37,6 +42,8 @@ void thread_msg(int idx, const std::string& msg) {
     std::cout << "TLS var g of thread " << idx << " is: " << *g << std::endl;
     g_lock.unlock();
     g_lock.unlock();
+    if (idx <= G_SEMAPHORE_INIT_VALUE)
+        sem_post(&g_sema);
 }
 
 static_assert(sizeof(sockaddr_un) <= sizeof(sockaddr_storage));
@@ -76,12 +83,20 @@ int main() {
 
     std::filesystem::space_info si = std::filesystem::space("/etc");
     printf("Space info of /etc: total: %lluMB, free: %lluMB\n", si.capacity / 1024 / 1024, si.free / 1024 / 1024);
+    if (sem_init(&g_sema, 0, G_SEMAPHORE_INIT_VALUE + 1) != 0) {
+        perror("sem_init()");
+        return 1;
+    }
     std::vector<std::shared_ptr<std::thread>> threads;
-    for (int i = 1; i <= 4; i++)
+    for (int i = 1; i <= G_THREAD_COUNT; i++)
         threads.push_back(std::make_shared<std::thread>(thread_msg, i, "Hello"));
     for (auto& t : threads)
         t->join();
     threads.clear();
+    int sem_value;
+    sem_getvalue(&g_sema, &sem_value);
+    printf("Current semaphore value: %d\n", sem_value);
+    sem_destroy(&g_sema);
 
     std::atomic<uint64_t> n(0);
     n++;
