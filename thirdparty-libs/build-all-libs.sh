@@ -3,6 +3,7 @@ set -e
 cd "$(dirname "$0")"
 source config.sh
 
+./build-libuuid.sh
 ./build-libiconv.sh
 ./build-bzip2.sh
 ./build-zlib.sh
