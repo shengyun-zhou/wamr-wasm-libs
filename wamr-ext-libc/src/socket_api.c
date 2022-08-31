@@ -388,6 +388,7 @@ struct wamr_wasi_ifaddr {
 
 struct wamr_wasi_ifaddrs_req {
     struct wamr_wasi_struct_header _s_header;
+    void*(*func_malloc)(uint32_t);
     struct wamr_wasi_ifaddr* ret_ifaddrs;
     uint32_t ret_ifaddr_cnt;
 };
@@ -397,9 +398,16 @@ int32_t __imported_sock_getifaddrs(struct wamr_wasi_ifaddrs_req*) __attribute__(
     __import_name__("sock_getifaddrs")
 ));
 
+void* __getifaddrs_malloc(uint32_t s) { return malloc(s); }
+
+int32_t __wamr_sock_getifaddrs(struct wamr_wasi_ifaddrs_req* req) {
+    req->func_malloc = __getifaddrs_malloc;
+    return __imported_sock_getifaddrs(req);
+}
+
 int getifaddrs(struct ifaddrs **ifap) {
     DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
-    int32_t err = __imported_sock_getifaddrs(&req);
+    int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
         return -1;
@@ -447,7 +455,7 @@ void freeifaddrs(struct ifaddrs *ifa) {
 
 unsigned int if_nametoindex(const char *ifname) {
     DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
-    int32_t err = __imported_sock_getifaddrs(&req);
+    int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
         return 0;
@@ -471,7 +479,7 @@ unsigned int if_nametoindex(const char *ifname) {
 
 char *if_indextoname(unsigned int ifindex, char *ifname) {
     DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
-    int32_t err = __imported_sock_getifaddrs(&req);
+    int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
         return NULL;
@@ -496,7 +504,7 @@ char *if_indextoname(unsigned int ifindex, char *ifname) {
 
 struct if_nameindex *if_nameindex(void) {
     DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
-    int32_t err = __imported_sock_getifaddrs(&req);
+    int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
         return NULL;
