@@ -30,6 +30,9 @@ std::recursive_mutex g_lock;
 sem_t g_sema;
 const int G_THREAD_COUNT = 4;
 const int G_SEMAPHORE_INIT_VALUE = G_THREAD_COUNT / 2;
+struct MyGlobal {
+    ~MyGlobal() { printf("Global var deconstruction\n"); }
+} _g;
 
 void thread_msg(int idx, const std::string& msg) {
     sem_wait(&g_sema);
@@ -48,7 +51,7 @@ void thread_msg(int idx, const std::string& msg) {
 
 static_assert(sizeof(sockaddr_un) <= sizeof(sockaddr_storage));
 
-int main() {
+int main(int argc, char** argv) {
     printf("Current timestamp: %llu\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     printf("Current timestamp after sleep: %llu\n", std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
