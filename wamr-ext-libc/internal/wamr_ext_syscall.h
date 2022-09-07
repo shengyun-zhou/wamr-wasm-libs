@@ -44,21 +44,25 @@ enum wamr_ext_syscall_id {
     __EXT_SYSCALL_PTHREAD_RWLOCK_DESTROY = 124,
 
     __EXT_SYSCALL_PTHREAD_HOST_SETNAME = 130,
+
+    // Filesystem ext
+    __EXT_SYSCALL_FD_STATVFS = 200,
+    __EXT_SYSCALL_FD_EXT_FCNTL = 201,
+
+    // Socket ext
+    __EXT_SYSCALL_SOCK_OPEN = 300,
+    __EXT_SYSCALL_SOCK_BIND = 301,
+    __EXT_SYSCALL_SOCK_CONNECT = 302,
+    __EXT_SYSCALL_SOCK_LISTEN = 303,
+    __EXT_SYSCALL_SOCK_ACCEPT = 304,
+    __EXT_SYSCALL_SOCK_GETSOCKNAME = 305,
+    __EXT_SYSCALL_SOCK_GETPEERNAME = 306,
+    __EXT_SYSCALL_SOCK_SHUTDOWN = 307,
+    __EXT_SYSCALL_SOCK_GETSOCKOPT = 308,
+    __EXT_SYSCALL_SOCK_SETSOCKOPT = 309,
+    __EXT_SYSCALL_SOCK_RECVMSG = 310,
+    __EXT_SYSCALL_SOCK_SENDMSG = 311,
+    __EXT_SYSCALL_SOCK_GETIFADDRS = 312,
 };
 
 #pragma clang diagnostic pop
-
-
-/* All private struct types used for extended imported WASI call MUST include this header */
-/* For ABI backward and forward compatibility */
-
-typedef struct wamr_wasi_struct_header {
-    uint16_t struct_ver;
-    uint16_t struct_size;
-} wamr_wasi_struct_header;
-
-#define INIT_WAMR_WASI_STRUCT_VAR(var_name, version) \
-     (var_name)._s_header.struct_ver = version; (var_name)._s_header.struct_size = sizeof(var_name)
-
-#define DEFINE_WAMR_WASI_STRUCT_VAR(struct_name, var_name, version) \
-    struct struct_name var_name = {0}; INIT_WAMR_WASI_STRUCT_VAR(var_name, version)

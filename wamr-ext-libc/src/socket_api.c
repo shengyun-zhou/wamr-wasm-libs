@@ -14,19 +14,15 @@
 #include <fcntl.h>
 #include "../internal/wamr_ext_syscall.h"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-attributes"
-
-#define SOCKET_EXT_MODULE "socket_ext"
-
-int32_t __imported_sock_open(int32_t, int32_t, int32_t, int32_t*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_open")
-));
-
 int socket(int domain, int type, int protocol) {
     int32_t sockfd = -1;
-    int32_t err = __imported_sock_open(domain, type, protocol, &sockfd);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = domain},
+        {.u32 = type},
+        {.u32 = protocol},
+        {.p = &sockfd},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_OPEN, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -35,8 +31,7 @@ int socket(int domain, int type, int protocol) {
 }
 
 struct wamr_wasi_sockaddr_storage {
-    _Alignas(8) struct wamr_wasi_struct_header _s_header;
-    uint16_t family;
+    _Alignas(8) uint16_t family;
     union {
         struct {
             uint8_t addr[4];
@@ -112,58 +107,50 @@ void __wamr_wasi_sockaddr_storage_to_sockaddr(const struct wamr_wasi_sockaddr_st
     memcpy(addr, &temp_sockaddr, *addrlen);
 }
 
-int32_t __imported_sock_bind(int32_t, const struct wamr_wasi_sockaddr_storage*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_bind")
-));
-
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_sockaddr_storage, wasi_sockaddr, 0);
+    struct wamr_wasi_sockaddr_storage wasi_sockaddr = {0};
     if (!__sockaddr_to_wamr_wasi_sockaddr_storage(addr, addrlen, &wasi_sockaddr))
         return -1;
-    int32_t err = __imported_sock_bind(sockfd, &wasi_sockaddr);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &wasi_sockaddr},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_BIND, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sock_connect(int32_t sockfd, const struct wamr_wasi_sockaddr_storage*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_connect")
-));
 
 int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_sockaddr_storage, wasi_sockaddr, 0);
+    struct wamr_wasi_sockaddr_storage wasi_sockaddr = {0};
     if (!__sockaddr_to_wamr_wasi_sockaddr_storage(addr, addrlen, &wasi_sockaddr))
         return -1;
-    int32_t err = __imported_sock_connect(sockfd, &wasi_sockaddr);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &wasi_sockaddr},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_CONNECT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sock_listen(int32_t sockfd, int32_t backlog) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_listen")
-));
 
 int listen(int sockfd, int backlog) {
-    int32_t err = __imported_sock_listen(sockfd, backlog);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.u32 = backlog},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_LISTEN, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sock_accept(int32_t, int32_t*, struct wamr_wasi_sockaddr_storage*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_accept")
-));
 
 int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     if (addr && !addrlen) {
@@ -171,8 +158,13 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
         return -1;
     }
     int32_t new_sockfd = -1;
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_sockaddr_storage, wasi_sockaddr, 0);
-    int32_t err = __imported_sock_accept(sockfd, &new_sockfd, &wasi_sockaddr);
+    struct wamr_wasi_sockaddr_storage wasi_sockaddr = {0};
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &new_sockfd},
+        {.p = &wasi_sockaddr},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_ACCEPT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -182,18 +174,17 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     return new_sockfd;
 }
 
-int32_t __imported_sock_getsockname(int32_t, struct wamr_wasi_sockaddr_storage*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_getsockname")
-));
-
 int getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     if (!addr || !addrlen) {
         errno = EINVAL;
         return -1;
     }
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_sockaddr_storage, wasi_sockaddr, 0);
-    int32_t err = __imported_sock_getsockname(sockfd, &wasi_sockaddr);
+    struct wamr_wasi_sockaddr_storage wasi_sockaddr = {0};
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &wasi_sockaddr},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_GETSOCKNAME, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -201,19 +192,18 @@ int getsockname(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     __wamr_wasi_sockaddr_storage_to_sockaddr(&wasi_sockaddr, addr, addrlen);
     return 0;
 }
-
-int32_t __imported_sock_getpeername(int32_t, struct wamr_wasi_sockaddr_storage*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_getpeername")
-));
 
 int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     if (!addr || !addrlen) {
         errno = EINVAL;
         return -1;
     }
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_sockaddr_storage, wasi_sockaddr, 0);
-    int32_t err = __imported_sock_getpeername(sockfd, &wasi_sockaddr);
+    struct wamr_wasi_sockaddr_storage wasi_sockaddr = {0};
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &wasi_sockaddr},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_GETPEERNAME, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -222,24 +212,18 @@ int getpeername(int sockfd, struct sockaddr *addr, socklen_t *addrlen) {
     return 0;
 }
 
-int32_t __imported_sock_shutdown(int32_t, int32_t) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_shutdown")
-));
-
-int shutdown(int sock, int how) {
-    int32_t err = __imported_sock_shutdown(sock, how);
+int shutdown(int sockfd, int how) {
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.u32 = how},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_SHUTDOWN, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sock_getopt(int32_t, int32_t, int32_t, void*, uint32_t*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_getopt")
-));
 
 int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optlen) {
     if (!optval || !optlen || *optlen <= 0) {
@@ -247,7 +231,14 @@ int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optl
         return -1;
     }
     uint32_t wasi_optlen = *optlen;
-    int32_t ret = __imported_sock_getopt(sockfd, level, optname, optval, &wasi_optlen);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.u32 = level},
+        {.u32 = optname},
+        {.p = optval},
+        {.p = &wasi_optlen},
+    };
+    int32_t ret = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_GETSOCKOPT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     *optlen = wasi_optlen;
     if (ret != 0) {
         errno = ret;
@@ -256,17 +247,19 @@ int getsockopt(int sockfd, int level, int optname, void *optval, socklen_t *optl
     return 0;
 }
 
-int32_t __imported_sock_setopt(int32_t, int32_t, int32_t, const void*, uint32_t) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_setopt")
-));
-
 int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen) {
     if (!optval || optlen <= 0) {
         errno = EINVAL;
         return -1;
     }
-    int32_t ret = __imported_sock_setopt(sockfd, level, optname, optval, optlen);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.u32 = level},
+        {.u32 = optname},
+        {.p = (void*)optval},
+        {.u32 = optlen},
+    };
+    int32_t ret = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_SETSOCKOPT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (ret != 0) {
         errno = ret;
         return -1;
@@ -294,28 +287,27 @@ ssize_t recvfrom(int sock, void *restrict buffer, size_t length, int flags, stru
 }
 
 struct wamr_wasi_msghdr {
-    struct wamr_wasi_struct_header _s_header;
     struct wamr_wasi_sockaddr_storage addr;
     uint32_t input_flags;
     uint32_t ret_flags;
     uint64_t ret_data_size;
 };
 
-int32_t __imported_sock_recvmsg(int32_t, struct wamr_wasi_msghdr*, struct iovec*, uint32_t) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_recvmsg")
-));
-
-ssize_t recvmsg(int sock, struct msghdr *message, int flags) {
-    if (!message->msg_iov || message->msg_iovlen <= 0) {
+ssize_t recvmsg(int sockfd, struct msghdr *message, int flags) {
+    if (!message || !message->msg_iov || message->msg_iovlen <= 0) {
         errno = EINVAL;
         return -1;
     }
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_msghdr, wamr_msghdr, 0);
-    INIT_WAMR_WASI_STRUCT_VAR(wamr_msghdr.addr, 0);
+    struct wamr_wasi_msghdr wamr_msghdr = {0};
     wamr_msghdr.addr.family = AF_UNSPEC;
     wamr_msghdr.input_flags = flags;
-    int32_t err = __imported_sock_recvmsg(sock, &wamr_msghdr, message->msg_iov, message->msg_iovlen);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &wamr_msghdr},
+        {.p = message->msg_iov},
+        {.u32 = message->msg_iovlen}
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_RECVMSG, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -340,23 +332,23 @@ ssize_t sendto(int sock, const void *message, size_t length, int flags, const st
     return sendmsg(sock, &msg, flags);
 }
 
-int32_t __imported_sock_sendmsg(int32_t, struct wamr_wasi_msghdr*, struct iovec*, uint32_t) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_sendmsg")
-));
-
-ssize_t sendmsg(int sock, const struct msghdr *message, int flags) {
-    if (!message->msg_iov || message->msg_iovlen <= 0) {
+ssize_t sendmsg(int sockfd, const struct msghdr *message, int flags) {
+    if (!message || !message->msg_iov || message->msg_iovlen <= 0) {
         errno = EINVAL;
         return -1;
     }
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_msghdr, wamr_msghdr, 0);
-    INIT_WAMR_WASI_STRUCT_VAR(wamr_msghdr.addr, 0);
+    struct wamr_wasi_msghdr wamr_msghdr = {0};
     wamr_msghdr.addr.family = AF_UNSPEC;
     if (message->msg_name && !__sockaddr_to_wamr_wasi_sockaddr_storage((struct sockaddr*)message->msg_name, message->msg_namelen, &wamr_msghdr.addr))
         return -1;
     wamr_msghdr.input_flags = flags;
-    int32_t err = __imported_sock_sendmsg(sock, &wamr_msghdr, message->msg_iov, message->msg_iovlen);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = sockfd},
+        {.p = &wamr_msghdr},
+        {.p = message->msg_iov},
+        {.u32 = message->msg_iovlen}
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_SENDMSG, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -387,26 +379,23 @@ struct wamr_wasi_ifaddr {
 };
 
 struct wamr_wasi_ifaddrs_req {
-    struct wamr_wasi_struct_header _s_header;
     void*(*func_malloc)(uint32_t);
     struct wamr_wasi_ifaddr* ret_ifaddrs;
     uint32_t ret_ifaddr_cnt;
 };
 
-int32_t __imported_sock_getifaddrs(struct wamr_wasi_ifaddrs_req*) __attribute__((
-    __import_module__(SOCKET_EXT_MODULE),
-    __import_name__("sock_getifaddrs")
-));
-
 void* __getifaddrs_malloc(uint32_t s) { return malloc(s); }
 
 int32_t __wamr_sock_getifaddrs(struct wamr_wasi_ifaddrs_req* req) {
     req->func_malloc = __getifaddrs_malloc;
-    return __imported_sock_getifaddrs(req);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = req},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_SOCK_GETIFADDRS, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
 int getifaddrs(struct ifaddrs **ifap) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    struct wamr_wasi_ifaddrs_req req = {0};
     int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
@@ -454,7 +443,7 @@ void freeifaddrs(struct ifaddrs *ifa) {
 }
 
 unsigned int if_nametoindex(const char *ifname) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    struct wamr_wasi_ifaddrs_req req = {0};
     int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
@@ -478,7 +467,7 @@ unsigned int if_nametoindex(const char *ifname) {
 }
 
 char *if_indextoname(unsigned int ifindex, char *ifname) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    struct wamr_wasi_ifaddrs_req req = {0};
     int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
@@ -503,7 +492,7 @@ char *if_indextoname(unsigned int ifindex, char *ifname) {
 }
 
 struct if_nameindex *if_nameindex(void) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_wasi_ifaddrs_req, req, 0);
+    struct wamr_wasi_ifaddrs_req req = {0};
     int32_t err = __wamr_sock_getifaddrs(&req);
     if (err != 0) {
         errno = err;
@@ -616,6 +605,3 @@ int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
         close(csock);
     return -1;
 }
-
-
-#pragma clang diagnostic pop

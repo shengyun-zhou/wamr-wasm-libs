@@ -12,9 +12,6 @@
 #include <stdio.h>
 #include "../internal/wamr_ext_syscall.h"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-attributes"
-
 #define FS_EXT_MODULE "fs_ext"
 
 int dup(int fildes) { errno = ENOSYS; return -1; }
@@ -32,7 +29,6 @@ int fchmodat(int dirfd, const char *pathname, mode_t mode, int flags) { errno = 
 mode_t umask(mode_t mask) { return S_IXUSR | S_IXGRP | S_IXOTH; }
 
 struct wamr_statvfs {
-    wamr_wasi_struct_header _s_header;
     uint32_t f_bsize;
     uint64_t f_blocks;
     uint64_t f_bfree;
@@ -56,14 +52,13 @@ int statvfs(const char *path, struct statvfs *buf) {
     return ret;
 }
 
-int32_t __imported_fd_statvfs(int32_t fd, struct wamr_statvfs *buf) __attribute__((
-    __import_module__(FS_EXT_MODULE),
-    __import_name__("fd_statvfs")
-));
-
 int fstatvfs(int fd, struct statvfs *buf) {
-    DEFINE_WAMR_WASI_STRUCT_VAR(wamr_statvfs, internal_vfs_buf, 0);
-    int32_t err = __imported_fd_statvfs(fd, &internal_vfs_buf);
+    struct wamr_statvfs internal_vfs_buf = {0};
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = fd},
+        {.p = &internal_vfs_buf},
+    };
+    int err = __imported_wamr_ext_syscall(__EXT_SYSCALL_FD_STATVFS, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
     if (err != 0) {
         errno = err;
         return -1;
@@ -78,12 +73,10 @@ struct wamr_fcntl_struct_header {
 };
 
 struct wamr_fcntl_generic {
-    wamr_wasi_struct_header _s_header;
     struct wamr_fcntl_struct_header fcntl_header;
 };
 
 struct wamr_fcntl_flock {
-    wamr_wasi_struct_header _s_header;
     struct wamr_fcntl_struct_header fcntl_header;
     int16_t l_type;
     int16_t l_whence;
@@ -91,13 +84,8 @@ struct wamr_fcntl_flock {
     int64_t l_len;
 };
 
-int32_t __imported_fd_fcntl(int32_t fd, struct wamr_fcntl_generic* buf) __attribute__((
-    __import_module__(FS_EXT_MODULE),
-    __import_name__("fd_fcntl")
-));
-
-#define DEFINE_FCNTL_STRUCT_VAR(struct_name, var_name, version, cmd) \
-    DEFINE_WAMR_WASI_STRUCT_VAR(struct_name, var_name, version); (var_name).fcntl_header.cmd = cmd
+#define DEFINE_FCNTL_STRUCT_VAR(struct_name, var_name, _cmd) \
+    struct struct_name var_name = {0}; (var_name).fcntl_header.cmd = _cmd
 
 int __wamr_ext_fcntl(int fd, int cmd, va_list args) {
     int ret;
@@ -106,12 +94,16 @@ int __wamr_ext_fcntl(int fd, int cmd, va_list args) {
         case F_SETLK:
         case F_SETLKW: {
             struct flock* p_flock = va_arg(args, struct flock*);
-            DEFINE_FCNTL_STRUCT_VAR(wamr_fcntl_flock, flock_ctrl, 0, cmd);
+            DEFINE_FCNTL_STRUCT_VAR(wamr_fcntl_flock, flock_ctrl, cmd);
             flock_ctrl.l_type = p_flock->l_type;
             flock_ctrl.l_whence = p_flock->l_whence;
             flock_ctrl.l_start = p_flock->l_start;
             flock_ctrl.l_len = p_flock->l_len;
-            int32_t err = __imported_fd_fcntl(fd, (struct wamr_fcntl_generic*)&flock_ctrl);
+            wamr_ext_syscall_arg argv[] = {
+                {.u32 = fd},
+                {.p = &flock_ctrl},
+            };
+            int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_FD_EXT_FCNTL, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
             if (err != 0) {
                 errno = err;
                 ret = -1;
@@ -156,5 +148,3 @@ int flock(int fd, int operation) {
     lbuf.l_start = lbuf.l_len = 0L;
     return fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &lbuf);
 }
-
-#pragma clang diagnostic pop
