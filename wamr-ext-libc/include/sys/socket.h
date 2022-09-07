@@ -89,12 +89,18 @@ struct linger {
 #define MSG_NOSIGNAL  0x4000
 
 struct cmsghdr {
-	uint32_t cmsg_len;
-	int32_t cmsg_level;
-	int32_t cmsg_type;
+#if __LONG_MAX > 0x7fffffff && __BYTE_ORDER == __BIG_ENDIAN
+    int __pad1;
+#endif
+    socklen_t cmsg_len;
+#if __LONG_MAX > 0x7fffffff && __BYTE_ORDER == __LITTLE_ENDIAN
+    int __pad1;
+#endif
+    int cmsg_level;
+    int cmsg_type;
 };
 
-#define __CMSG_LEN(cmsg) ((cmsg)->cmsg_len)
+#define __CMSG_LEN(cmsg) (((cmsg)->cmsg_len + sizeof(long) - 1) & ~(long)(sizeof(long) - 1))
 #define __CMSG_NEXT(cmsg) ((unsigned char *)(cmsg) + __CMSG_LEN(cmsg))
 #define __MHDR_END(mhdr) ((unsigned char *)(mhdr)->msg_control + (mhdr)->msg_controllen)
 
@@ -104,10 +110,11 @@ struct cmsghdr {
 	? 0 : (struct cmsghdr *)__CMSG_NEXT(cmsg))
 #define CMSG_FIRSTHDR(mhdr) ((size_t) (mhdr)->msg_controllen >= sizeof (struct cmsghdr) ? (struct cmsghdr *) (mhdr)->msg_control : (struct cmsghdr *) 0)
 
-#define CMSG_ALIGN(len) (len)
+#define CMSG_ALIGN(len) (((len) + sizeof (size_t) - 1) & (size_t) ~(sizeof (size_t) - 1))
 #define CMSG_SPACE(len) (CMSG_ALIGN (len) + CMSG_ALIGN (sizeof (struct cmsghdr)))
 #define CMSG_LEN(len)   (CMSG_ALIGN (sizeof (struct cmsghdr)) + (len))
 
+#include <__struct_msghdr.h>
 #include <__struct_sockaddr.h>
 #include <__struct_sockaddr_storage.h>
 
