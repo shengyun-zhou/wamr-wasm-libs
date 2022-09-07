@@ -9,7 +9,7 @@ index 3690f49..1188634 100644
 -typedef struct {
 -	volatile int __val[4*sizeof(long)/sizeof(int)];
 -} sem_t;
-+typedef unsigned int sem_t;
++typedef struct _sem_s* sem_t;
  
  int    sem_close(sem_t *);
  int    sem_destroy(sem_t *);

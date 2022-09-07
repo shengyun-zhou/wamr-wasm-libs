@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "../internal/priv_struct_header.h"
+#include "../internal/wamr_syscall.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-attributes"

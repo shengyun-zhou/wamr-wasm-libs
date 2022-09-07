@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <semaphore.h>
+#include "../internal/wamr_syscall.h"
 #include "../internal/tls_data.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-attributes"
-#define PTHREAD_EXT_MODULE "pthread_ext"
 
 _Thread_local struct tls_data __g_tls_data;
 
@@ -59,7 +59,7 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*func)(v
     struct pthread_routine_bundle* p_bundle = malloc(sizeof(struct pthread_routine_bundle));
     p_bundle->user_func = func;
     p_bundle->user_arg = arg;
-    int ret = __imported_pthread_create(thread, (void*)attr, __pthread_routine, p_bundle);
+    int ret = __imported_pthread_create(thread, NULL, __pthread_routine, p_bundle);
     if (ret != 0)
         free(p_bundle);
     return ret;
@@ -99,60 +99,54 @@ uint64_t __pthread_get_timeout_us(const struct timespec* abstime) {
     return 0;
 }
 
-int32_t __imported_pthread_mutex_init(uint32_t*, void*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_mutex_init")
-));
-
 int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr) {
-    return __imported_pthread_mutex_init(mutex, (void*)attr);
+    int mutex_type = PTHREAD_MUTEX_DEFAULT;
+    if (attr)
+        pthread_mutexattr_gettype(attr, &mutex_type);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = mutex},
+        {.u32 = mutex_type},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_MUTEX_INIT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
-int32_t __imported_pthread_mutex_lock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_mutex_lock")
-));
+int __pthread_mutex_timedlock_with_timeout(pthread_mutex_t *mutex, uint64_t timeout_us) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = mutex},
+        {.u64 = timeout_us}
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_MUTEX_TIMEDLOCK, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+}
 
 int pthread_mutex_lock(pthread_mutex_t *mutex) {
-    return __imported_pthread_mutex_lock(mutex);
+    return __pthread_mutex_timedlock_with_timeout(mutex, UINT64_MAX);
 }
-
-int32_t __imported_pthread_mutex_unlock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_mutex_unlock")
-));
-
-int pthread_mutex_unlock(pthread_mutex_t* mutex) {
-    return __imported_pthread_mutex_unlock(mutex);
-}
-
-int32_t __imported_pthread_mutex_trylock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_mutex_trylock")
-));
 
 int pthread_mutex_trylock(pthread_mutex_t* mutex) {
-    return __imported_pthread_mutex_trylock(mutex);
+    int err = __pthread_mutex_timedlock_with_timeout(mutex, 0);
+    if (err == ETIMEDOUT)
+        return EBUSY;
+    return err;
 }
-
-int32_t __imported_pthread_mutex_timedlock(uint32_t*, uint64_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_mutex_timedlock")
-));
 
 int pthread_mutex_timedlock(pthread_mutex_t* mutex, const struct timespec* abstime) {
     if (!abstime)
         return pthread_mutex_lock(mutex);
-    return __imported_pthread_mutex_timedlock(mutex, __pthread_get_timeout_us(abstime));
+    return __pthread_mutex_timedlock_with_timeout(mutex, __pthread_get_timeout_us(abstime));
 }
 
-int32_t __imported_pthread_mutex_destroy(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_mutex_destroy")
-));
+int pthread_mutex_unlock(pthread_mutex_t* mutex) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = mutex},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_MUTEX_UNLOCK, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+}
 
 int pthread_mutex_destroy(pthread_mutex_t* mutex) {
-    return __imported_pthread_mutex_destroy(mutex);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = mutex},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_MUTEX_DESTROY, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
 int pthread_mutexattr_init(pthread_mutexattr_t *attr) {
@@ -174,145 +168,122 @@ int pthread_mutexattr_destroy(pthread_mutexattr_t *attr) {
     return 0;
 }
 
-int32_t __imported_pthread_cond_init(uint32_t*, void*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_cond_init")
-));
-
 int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
-    return __imported_pthread_cond_init(cond, (void*)attr);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = cond},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_COND_INIT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
-int32_t __imported_pthread_cond_destroy(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_cond_destroy")
-));
-
-int pthread_cond_destroy(pthread_cond_t* cond) {
-    return __imported_pthread_cond_destroy(cond);
+int __pthread_cond_timedwait_with_timeout(pthread_cond_t *cond, pthread_mutex_t *mutex, uint64_t timeout_us) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = cond},
+        {.p = mutex},
+        {.u64 = timeout_us}
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_COND_TIMEDWAIT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
-
-int32_t __imported_pthread_cond_wait(uint32_t*, uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_cond_wait")
-));
 
 int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
-    return __imported_pthread_cond_wait(cond, mutex);
+    return __pthread_cond_timedwait_with_timeout(cond, mutex, UINT64_MAX);
 }
-
-int32_t __imported_pthread_cond_timedwait(uint32_t*, uint32_t*, uint64_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_cond_timedwait")
-));
 
 int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime) {
     if (!abstime)
         return pthread_cond_wait(cond, mutex);
-    return __imported_pthread_cond_timedwait(cond, mutex, __pthread_get_timeout_us(abstime));
+    return __pthread_cond_timedwait_with_timeout(cond, mutex, __pthread_get_timeout_us(abstime));
 }
-
-int32_t __imported_pthread_cond_broadcast(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_cond_broadcast")
-));
 
 int pthread_cond_broadcast(pthread_cond_t *cond) {
-    return __imported_pthread_cond_broadcast(cond);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = cond},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_COND_BROADCAST, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
-
-int32_t __imported_pthread_cond_signal(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_cond_signal")
-));
 
 int pthread_cond_signal(pthread_cond_t *cond) {
-    return __imported_pthread_cond_signal(cond);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = cond},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_COND_SIGNAL, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
-int32_t __imported_pthread_rwlock_init(uint32_t*, void*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_init")
-));
+int pthread_cond_destroy(pthread_cond_t* cond) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = cond},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_COND_DESTROY, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+}
 
 int pthread_rwlock_init(pthread_rwlock_t *rwlock, const pthread_rwlockattr_t *attr) {
-    return __imported_pthread_rwlock_init(rwlock, (void*)attr);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = rwlock},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_RWLOCK_INIT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
-int32_t __imported_pthread_rwlock_destroy(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_destroy")
-));
-
-int pthread_rwlock_destroy(pthread_rwlock_t *rwlock) {
-    return __imported_pthread_rwlock_destroy(rwlock);
+int __pthread_rwlock_timedrdlock_with_timeout(pthread_rwlock_t *rwlock, uint64_t timeout_us) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = rwlock},
+        {.u64 = timeout_us},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_RWLOCK_TIMEDRDLOCK, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
-
-int32_t __imported_pthread_rwlock_rdlock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_rdlock")
-));
 
 int pthread_rwlock_rdlock(pthread_rwlock_t *rwlock) {
-    return __imported_pthread_rwlock_rdlock(rwlock);
+    return __pthread_rwlock_timedrdlock_with_timeout(rwlock, UINT64_MAX);
 }
-
-int32_t __imported_pthread_rwlock_tryrdlock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_tryrdlock")
-));
 
 int pthread_rwlock_tryrdlock(pthread_rwlock_t *rwlock) {
-    return __imported_pthread_rwlock_tryrdlock(rwlock);
+    int err = __pthread_rwlock_timedrdlock_with_timeout(rwlock, 0);
+    if (err == ETIMEDOUT)
+        return EBUSY;
+    return err;
 }
-
-int32_t __imported_pthread_rwlock_timedrdlock(uint32_t*, uint64_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_timedrdlock")
-));
 
 int pthread_rwlock_timedrdlock(pthread_rwlock_t *rwlock, const struct timespec *abstime) {
     if (!abstime)
         return pthread_rwlock_rdlock(rwlock);
-    return __imported_pthread_rwlock_timedrdlock(rwlock, __pthread_get_timeout_us(abstime));
+    return __pthread_rwlock_timedrdlock_with_timeout(rwlock, __pthread_get_timeout_us(abstime));
 }
 
-int32_t __imported_pthread_rwlock_wrlock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_wrlock")
-));
+int __pthread_rwlock_timedwrlock_with_timeout(pthread_rwlock_t* rwlock, uint64_t timeout_us) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = rwlock},
+        {.u64 = timeout_us},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_RWLOCK_TIMEDWRLOCK, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+}
 
 int pthread_rwlock_wrlock(pthread_rwlock_t *rwlock) {
-    return __imported_pthread_rwlock_wrlock(rwlock);
+    return __pthread_rwlock_timedwrlock_with_timeout(rwlock, UINT64_MAX);
 }
-
-int32_t __imported_pthread_rwlock_trywrlock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_trywrlock")
-));
 
 int pthread_rwlock_trywrlock(pthread_rwlock_t *rwlock) {
-    return __imported_pthread_rwlock_trywrlock(rwlock);
+    int err = __pthread_rwlock_timedwrlock_with_timeout(rwlock, 0);
+    if (err == ETIMEDOUT)
+        return EBUSY;
+    return err;
 }
-
-int32_t __imported_pthread_rwlock_timedwrlock(uint32_t*, uint64_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_timedwrlock")
-));
 
 int pthread_rwlock_timedwrlock(pthread_rwlock_t *rwlock, const struct timespec *abstime) {
     if (!abstime)
         return pthread_rwlock_wrlock(rwlock);
-    return __imported_pthread_rwlock_timedwrlock(rwlock, __pthread_get_timeout_us(abstime));
+    return __pthread_rwlock_timedwrlock_with_timeout(rwlock, __pthread_get_timeout_us(abstime));
 }
 
-int32_t __imported_pthread_rwlock_unlock(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_rwlock_unlock")
-));
-
 int pthread_rwlock_unlock(pthread_rwlock_t *rwlock) {
-    return __imported_pthread_rwlock_unlock(rwlock);
+    wamr_ext_syscall_arg argv[] = {
+        {.p = rwlock},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_RWLOCK_UNLOCK, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+}
+
+int pthread_rwlock_destroy(pthread_rwlock_t *rwlock) {
+    wamr_ext_syscall_arg argv[] = {
+        {.p = rwlock},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_RWLOCK_DESTROY, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
 int32_t __imported_pthread_key_create(uint32_t*, void(*)(void*)) __attribute__((
@@ -411,22 +382,19 @@ int pthread_once(pthread_once_t *once_control, void(*init_routine)()) {
     return 0;
 }
 
-int32_t __imported_pthread_setname_np(const char*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_setname_np")
-));
-
 int pthread_setname_np(const char *name) {
-    return __imported_pthread_setname_np(name);
+    snprintf(__g_tls_data.thread_name, sizeof(__g_tls_data.thread_name), "%s", name);
+    // Set host thread name for debugging
+    wamr_ext_syscall_arg argv[] = {
+        {.p = (void*)name},
+    };
+    __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_HOST_SETNAME, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+    return 0;
 }
 
-int32_t __imported_pthread_getname_np(char*, uint32_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("pthread_getname_np")
-));
-
 int pthread_getname_np(char *name, size_t len) {
-    return __imported_pthread_getname_np(name, len);
+    snprintf(name, len, "%s", __g_tls_data.thread_name);
+    return 0;
 }
 
 int pthread_attr_init(pthread_attr_t *attr) {
@@ -445,105 +413,157 @@ int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize) {
     return ENOSYS;
 }
 
-int32_t __imported_sem_init(uint32_t*, uint32_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_init")
-));
+struct _sem_s {
+    uint32_t val;
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+};
 
 int sem_init(sem_t *sem, int pshared, unsigned int value) {
-    if (pshared != 0)
-        return ENOSYS;
-    int32_t err = __imported_sem_init(sem, value);
+    int err = 0;
+    do {
+        if (!sem) {
+            err = EINVAL;
+            break;
+        }
+        if (pshared != 0) {
+            err = ENOSYS;
+            break;
+        }
+        if (!(*sem = malloc(sizeof(struct _sem_s)))) {
+            err = ENOMEM;
+            break;
+        }
+        (*sem)->val = value;
+        pthread_mutex_init(&(*sem)->mutex, NULL);
+        pthread_cond_init(&(*sem)->cond, NULL);
+    } while (0);
     if (err != 0) {
         errno = err;
+        if (sem && *sem)
+            free(*sem);
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sem_wait(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_wait")
-));
 
 int sem_wait(sem_t* sem) {
-    int32_t err = __imported_sem_wait(sem);
+    if (!sem || !(*sem)) {
+        errno = EINVAL;
+        return -1;
+    }
+    struct _sem_s* p_sem = *sem;
+    pthread_mutex_lock(&p_sem->mutex);
+    while (1) {
+        if (p_sem->val > 0) {
+            p_sem->val--;
+            break;
+        }
+        pthread_cond_wait(&p_sem->cond, &p_sem->mutex);
+    }
+    pthread_mutex_unlock(&p_sem->mutex);
+    return 0;
+}
+
+int sem_trywait(sem_t* sem) {
+    if (!sem || !(*sem)) {
+        errno = EINVAL;
+        return -1;
+    }
+    struct _sem_s* p_sem = *sem;
+    int err = 0;
+    pthread_mutex_lock(&p_sem->mutex);
+    if (p_sem->val > 0)
+        p_sem->val--;
+    else
+        err = EAGAIN;
+    pthread_mutex_unlock(&p_sem->mutex);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sem_timedwait(uint32_t*, uint64_t) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_timedwait")
-));
 
 int sem_timedwait(sem_t* sem, const struct timespec *abstime) {
     if (!abstime)
         return sem_wait(sem);
-    int32_t err = __imported_sem_timedwait(sem, __pthread_get_timeout_us(abstime));
+    if (!sem || !(*sem)) {
+        errno = EINVAL;
+        return -1;
+    }
+    struct _sem_s* p_sem = *sem;
+    int err = 0;
+    pthread_mutex_lock(&p_sem->mutex);
+    while (1) {
+        if (p_sem->val > 0) {
+            p_sem->val--;
+            break;
+        }
+        uint64_t timeout_us = __pthread_get_timeout_us(abstime);
+        if (timeout_us <= 0) {
+            err = ETIMEDOUT;
+            break;
+        }
+        __pthread_cond_timedwait_with_timeout(&p_sem->cond, &p_sem->mutex, timeout_us);
+    }
+    pthread_mutex_unlock(&p_sem->mutex);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
 }
-
-int32_t __imported_sem_trywait(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_trywait")
-));
-
-int sem_trywait(sem_t* sem) {
-    int32_t err = __imported_sem_trywait(sem);
-    if (err != 0) {
-        errno = err;
-        return -1;
-    }
-    return 0;
-}
-
-int32_t __imported_sem_post(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_post")
-));
 
 int sem_post(sem_t* sem) {
-    int32_t err = __imported_sem_post(sem);
+    if (!sem || !(*sem)) {
+        errno = EINVAL;
+        return -1;
+    }
+    struct _sem_s* p_sem = *sem;
+    int err = 0;
+    pthread_mutex_lock(&p_sem->mutex);
+    if (p_sem->val == UINT32_MAX) {
+        err = EOVERFLOW;
+    } else {
+        p_sem->val++;
+        if (p_sem->val == 1)
+            pthread_cond_signal(&p_sem->cond);
+    }
+    pthread_mutex_unlock(&p_sem->mutex);
     if (err != 0) {
         errno = err;
         return -1;
     }
     return 0;
-}
 
-int32_t __imported_sem_getvalue(uint32_t*, int32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_getvalue")
-));
+}
 
 int sem_getvalue(sem_t* sem, int* sval) {
-    int32_t err = __imported_sem_getvalue(sem, sval);
-    if (err != 0) {
-        errno = err;
+    if (!sem || !(*sem) || !sval) {
+        errno = EINVAL;
         return -1;
     }
+    struct _sem_s* p_sem = *sem;
+    pthread_mutex_lock(&p_sem->mutex);
+    if (p_sem->val > INT32_MAX)
+        *sval = INT32_MAX;
+    else
+        *sval = p_sem->val;
+    pthread_mutex_unlock(&p_sem->mutex);
     return 0;
 }
 
-int32_t __imported_sem_destroy(uint32_t*) __attribute__((
-    __import_module__(PTHREAD_EXT_MODULE),
-    __import_name__("sem_destroy")
-));
-
 int sem_destroy(sem_t* sem) {
-    int32_t err = __imported_sem_destroy(sem);
-    if (err != 0) {
-        errno = err;
+    if (!sem || !(*sem)) {
+        errno = EINVAL;
         return -1;
     }
+    struct _sem_s* p_sem = *sem;
+    pthread_cond_destroy(&p_sem->cond);
+    pthread_mutex_destroy(&p_sem->mutex);
+    free(p_sem);
+    *sem = NULL;
     return 0;
 }
 

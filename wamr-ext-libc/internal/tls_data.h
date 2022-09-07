@@ -20,6 +20,7 @@ struct tls_data {
     struct pthread_cleanup_handler_stacknode* cleanup_handler_stacktop;
     struct cxx_dtor_stacknode* cxx_dtor_stacktop;
     struct pthread_routine_bundle* thread_routine_bundle;
+    char thread_name[32];
 };
 
 extern _Thread_local struct tls_data __g_tls_data;
