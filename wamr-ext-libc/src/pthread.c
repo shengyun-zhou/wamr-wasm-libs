@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <semaphore.h>
-#include "../internal/wamr_syscall.h"
+#include "../internal/wamr_ext_syscall.h"
 #include "../internal/tls_data.h"
 
 #pragma clang diagnostic push
@@ -87,6 +87,10 @@ uint32_t __imported_pthread_self() __attribute__((
 
 pthread_t pthread_self() {
     return __imported_pthread_self();
+}
+
+int pthread_equal(pthread_t t1, pthread_t t2) {
+    return t1 == t2;
 }
 
 uint64_t __pthread_get_timeout_us(const struct timespec* abstime) {
@@ -383,6 +387,8 @@ int pthread_once(pthread_once_t *once_control, void(*init_routine)()) {
 }
 
 int pthread_setname_np(const char *name) {
+    if (!name)
+        return EINVAL;
     snprintf(__g_tls_data.thread_name, sizeof(__g_tls_data.thread_name), "%s", name);
     // Set host thread name for debugging
     wamr_ext_syscall_arg argv[] = {

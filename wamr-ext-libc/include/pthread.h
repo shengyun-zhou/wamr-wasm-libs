@@ -83,8 +83,7 @@ int pthread_detach(pthread_t);
 void pthread_exit(void*);
 int pthread_join(pthread_t, void **);
 pthread_t pthread_self(void);
-
-#define pthread_equal(x, y) ((x)==(y))
+int pthread_equal(pthread_t t1, pthread_t t2);
 
 int pthread_once(pthread_once_t *, void (*)(void));
 

@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include "../internal/wamr_syscall.h"
+#include "../internal/wamr_ext_syscall.h"
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunknown-attributes"
