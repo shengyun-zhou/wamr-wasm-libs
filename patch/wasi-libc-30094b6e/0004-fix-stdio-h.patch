@@ -13,3 +13,17 @@ index d63d739..ae044aa 100644
  int fileno(FILE *);
  int fseeko(FILE *, off_t, int);
  off_t ftello(FILE *);
+diff --git a/libc-top-half/musl/src/internal/stdio_impl.h b/libc-top-half/musl/src/internal/stdio_impl.h
+index 7f19dd9..c547686 100644
+--- a/libc-top-half/musl/src/internal/stdio_impl.h
++++ b/libc-top-half/musl/src/internal/stdio_impl.h
+@@ -43,9 +43,7 @@ struct _IO_FILE {
+ 	size_t buf_size;
+ 	FILE *prev, *next;
+ 	int fd;
+-#ifdef __wasilibc_unmodified_upstream // WASI has no popen
+ 	int pipe_pid;
+-#endif
+ #if defined(__wasilibc_unmodified_upstream) || defined(_REENTRANT)
+ 	long lockcount;
+ #endif

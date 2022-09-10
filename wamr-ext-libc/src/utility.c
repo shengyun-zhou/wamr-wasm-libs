@@ -25,14 +25,6 @@ int gethostname(char *name, size_t len) {
 }
 int sethostname(const char *name, size_t len) { errno = EPERM; return -1; }
 
-FILE *popen(const char *command, const char *type) {
-    // Do not allow to execute any command now.
-    errno = ENOENT;
-    return NULL;
-}
-int system(const char *cmd) { return 127; }
-int pclose(FILE *stream) { return 0; }
-
 int *__errno_location() { return &__g_tls_data.tls_errno; }
 int *__h_errno_location() { return &__g_tls_data.tls_h_errno; }
 struct __wasilibc_find_path_tls_data* __wasilibc_find_path_tls_data_location() {

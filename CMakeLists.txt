@@ -15,6 +15,7 @@ set(WAMR_EXT_LIBC_INCLUDE_DIR ${WAMR_EXT_LIBC_ROOT_DIR}/include)
 
 set(_WAMR_EXT_LIBC_HEADERS
         net/if.h
+        sys/wait.h
         sys/mount.h
         sys/socket.h
         sys/statvfs.h
@@ -23,7 +24,9 @@ set(_WAMR_EXT_LIBC_HEADERS
         netdb.h
         pthread.h
         resolv.h
+        spawn.h
         syslog.h
+        wamr_ext.h
         )
 
 set(TEST_ALL_INCLUDE_FILES "")
@@ -99,6 +102,23 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/network/hstrerror.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/misc/realpath.c
+
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_init.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_destroy.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_addopen.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_addclose.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_adddup2.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_init.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_destroy.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_getflags.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setflags.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_getpgroup.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setpgroup.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_getsigdefault.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setsigdefault.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_getsigmask.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setsigmask.c
+        ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_sched.c
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include
@@ -124,10 +144,12 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/socket_api.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/signal.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/main.c
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/process.c
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
         ${WASI_LIBC_SOURCE}/sysroot/include
+        ${WASI_LIBC_TOP_HALF_SRC}/internal
         )
 
 add_custom_command(TARGET wamr_libc POST_BUILD
