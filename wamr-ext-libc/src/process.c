@@ -7,9 +7,15 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <sys/wait.h>
+#include "../internal/wamr_ext_syscall.h"
 
+#include "../musl-internal/process/fdop.h"
+#undef malloc
+#undef calloc
+#undef realloc
+#undef free
 #define hidden
-#include <stdio_impl.h>
+#include "../musl-internal/stdio_impl.h"
 
 extern char **__environ;
 
@@ -148,23 +154,99 @@ int posix_spawn(pid_t *restrict pid, const char *restrict path,
     return posix_spawnp(pid, path, file_actions, attrp, argv, envp);
 }
 
+#define __WAMR_WASI_SPAWN_ACTION_FDUP2 1
+
+struct wamr_spawn_action_base {
+    struct wamr_spawn_action_base* next_action;
+    uint32_t cmd;
+};
+
+struct wamr_spawn_action_fdup2 {
+    struct wamr_spawn_action_base action_base;
+    int32_t src_fd;
+    int32_t dest_fd;
+};
+
+struct wamr_spawn_req {
+    const char* cmd_name;
+    char** argv;
+    uint32_t argc;
+    struct wamr_spawn_action_base* fa;
+    int32_t ret_pid;
+};
+
 int posix_spawnp(pid_t *restrict pid, const char *restrict file,
                  const posix_spawn_file_actions_t *restrict file_actions,
                  const posix_spawnattr_t *restrict attrp,
-                 char *const argv[restrict],
+                 char *const exec_argv[restrict],
                  char *const envp[restrict]) {
     if (!file || !(file[0]))
         return EINVAL;
-    return ENOSYS;
+    struct wamr_spawn_req req = {0};
+    req.cmd_name = file;
+    if (exec_argv && exec_argv[0]) {
+        // Ignore first argument
+        req.argv = (char**)&exec_argv[1];
+        while (req.argv[req.argc])
+            req.argc++;
+    }
+    if (file_actions && file_actions->__actions) {
+        for (struct fdop* op = file_actions->__actions; op; op = op->next) {
+            struct wamr_spawn_action_base* new_action_node = NULL;
+            switch(op->cmd) {
+                case FDOP_DUP2: {
+                    struct wamr_spawn_action_fdup2* fa_dup2 = malloc(sizeof(struct wamr_spawn_action_fdup2));
+                    new_action_node = (struct wamr_spawn_action_base*)fa_dup2;
+                    fa_dup2->action_base.cmd = __WAMR_WASI_SPAWN_ACTION_FDUP2;
+                    fa_dup2->src_fd = op->srcfd;
+                    fa_dup2->dest_fd = op->fd;
+                    break;
+                }
+            }
+            if (new_action_node) {
+                new_action_node->next_action = req.fa;
+                req.fa = new_action_node;
+            }
+        }
+    }
+    wamr_ext_syscall_arg syscall_argv[] = {
+        {.p = &req},
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_PROC_SPAWN, sizeof(syscall_argv) / sizeof(wamr_ext_syscall_arg), syscall_argv);
+    while (req.fa) {
+        struct wamr_spawn_action_base* next_node = req.fa->next_action;
+        free(req.fa);
+        req.fa = next_node;
+    }
+    if (err == 0 && pid)
+        *pid = req.ret_pid;
+    return err;
 }
-
 
 pid_t wait(int *stat_loc) {
     return waitpid(-1, stat_loc, 0);
 }
 
 pid_t waitpid(pid_t pid, int *stat_loc, int options) {
-    errno = ENOSYS;
-    return -1;
+    if (!stat_loc) {
+        errno = EINVAL;
+        return -1;
+    }
+    int32_t exit_status = UINT8_MAX;
+    int32_t ret_pid = 0;
+    wamr_ext_syscall_arg syscall_argv[] = {
+        {.u32 = pid},
+        {.u32 = options},
+        {.p = &exit_status},
+        {.p = &ret_pid}
+    };
+    int32_t err = __imported_wamr_ext_syscall(__EXT_SYSCALL_PROC_WAIT_PID, sizeof(syscall_argv) / sizeof(wamr_ext_syscall_arg), syscall_argv);
+    if (err != 0) {
+        errno = err;
+        return -1;
+    }
+    if (ret_pid > 0)
+        *stat_loc = exit_status;
+    return ret_pid;
 }
 

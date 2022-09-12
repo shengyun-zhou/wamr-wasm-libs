@@ -63,6 +63,10 @@ enum wamr_ext_syscall_id {
     __EXT_SYSCALL_SOCK_RECVMSG = 310,
     __EXT_SYSCALL_SOCK_SENDMSG = 311,
     __EXT_SYSCALL_SOCK_GETIFADDRS = 312,
+
+    // Process ext
+    __EXT_SYSCALL_PROC_SPAWN = 400,
+    __EXT_SYSCALL_PROC_WAIT_PID = 401,
 };
 
 #pragma clang diagnostic pop

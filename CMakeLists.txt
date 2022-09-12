@@ -149,7 +149,6 @@ add_library(wamr_libc STATIC
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
         ${WASI_LIBC_SOURCE}/sysroot/include
-        ${WASI_LIBC_TOP_HALF_SRC}/internal
         )
 
 add_custom_command(TARGET wamr_libc POST_BUILD
