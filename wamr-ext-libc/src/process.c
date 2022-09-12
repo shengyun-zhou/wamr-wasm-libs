@@ -145,6 +145,33 @@ int pclose(FILE *f) {
     return WEXITSTATUS(status);
 }
 
+// Implementation ref: musl-libc
+int system(const char *cmd) {
+    if (!cmd || !(cmd[0]))
+        return 1;
+    pid_t pid;
+    char** argv = NULL;
+    __process_split_cmdline(cmd, &argv);
+    int err = ENOMEM;
+    if (argv)
+        err = posix_spawnp(&pid, argv[0], NULL, NULL, argv, __environ);
+    __process_free_argv(argv);
+    int exit_status = -1;
+    if (!err) {
+        while (waitpid(pid, &exit_status, 0) == -1 && errno == EINTR);
+        exit_status = WEXITSTATUS(exit_status);
+    } else if (err == ENOENT) {
+        // Treat as "command not found" in shell.
+        exit_status = 127;
+        err = 0;
+    }
+    if (err) {
+        errno = err;
+        return -1;
+    }
+    return exit_status;
+}
+
 int posix_spawn(pid_t *restrict pid, const char *restrict path,
                 const posix_spawn_file_actions_t *restrict file_actions,
                 const posix_spawnattr_t *restrict attrp,

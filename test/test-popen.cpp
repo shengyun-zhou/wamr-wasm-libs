@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 int main() {
     const char* cmdline = "uname -a";
@@ -12,7 +13,8 @@ int main() {
         pclose(pin);
     } else {
         printf("Failed to exec command %s: %s\n", cmdline, strerror(errno));
-        return 1;
     }
+    int ret = system(cmdline);
+    printf("system(\"%s\") return %d\n", cmdline, ret);
     return 0;
 }
