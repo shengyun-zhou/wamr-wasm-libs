@@ -58,7 +58,7 @@ add_compile_options(-Werror -Wno-switch -Wno-shift-op-parentheses
     -Wno-null-pointer-arithmetic -Wno-unused-parameter -Wno-sign-compare
     -Wno-unused-variable -Wno-unused-function -Wno-ignored-attributes -Wno-missing-braces
     -Wno-ignored-pragmas -Wno-unused-but-set-variable)
-target_compile_definitions(wamr_dlmalloc PRIVATE -DUSE_LOCKS=1 -DUSE_SPIN_LOCKS=0)
+target_compile_definitions(wamr_dlmalloc PRIVATE -DUSE_LOCKS=1 -DUSE_SPIN_LOCKS=0 -DUSE_RECURSIVE_LOCKS=1)
 target_include_directories(wamr_dlmalloc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
         ${WASI_LIBC_SOURCE}/sysroot/include
