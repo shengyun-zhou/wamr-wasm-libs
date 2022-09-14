@@ -138,7 +138,6 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/sysconf.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/cxxabi.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/user_group.c
-        ${WAMR_EXT_LIBC_ROOT_DIR}/src/string.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/utility.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/filesystem.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/socket_api.c
@@ -156,7 +155,6 @@ add_custom_command(TARGET wamr_libc POST_BUILD
         # Remove some original function implementation
         COMMAND ${CMAKE_AR} -d ${CMAKE_CURRENT_BINARY_DIR}/libc.a
         dlmalloc.o recv.o send.o getsockopt.o accept.o shutdown.o
-        memcmp.o memcpy.o memmove.o memset.o
         iconv.o iconv_close.o
         COMMAND ${CMAKE_AR} qscL ${CMAKE_CURRENT_BINARY_DIR}/libc.a $<TARGET_FILE:wamr_libc>
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libc.a ${OUTPUT_WASI_LIBC}
