@@ -70,7 +70,9 @@ int32_t __imported_pthread_detach(uint32_t) __attribute__((
 ));
 
 int pthread_detach(pthread_t thread) {
-    return __imported_pthread_detach(thread);
+    // The thread will be detached or joined finally at exit in WAMR
+    // TODO: call __imported_pthread_detach() after crash fix in WAMR
+    return 0;
 }
 
 int32_t __imported_pthread_join(uint32_t, void**) __attribute__((
