@@ -9,13 +9,13 @@
 #include <sys/wait.h>
 #include "../internal/wamr_ext_syscall.h"
 
-#include "../musl-internal/process/fdop.h"
+#include "../../wasi-libc/libc-top-half/musl/src/process/fdop.h"
 #undef malloc
 #undef calloc
 #undef realloc
 #undef free
 #define hidden
-#include "../musl-internal/stdio_impl.h"
+#include "../../wasi-libc/libc-top-half/musl/src/internal/stdio_impl.h"
 
 extern char **__environ;
 
