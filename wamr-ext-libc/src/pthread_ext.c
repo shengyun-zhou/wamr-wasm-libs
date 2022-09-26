@@ -379,8 +379,10 @@ int pthread_once(pthread_once_t *once_control, void(*init_routine)()) {
         return EINVAL;
     if (*once_control == 0) {
         pthread_mutex_lock(&__g_pthread_once_lock);
-        init_routine();
-        *once_control = 1;
+        if (*once_control == 0) {
+            init_routine();
+            *once_control = 1;
+        }
         pthread_mutex_unlock(&__g_pthread_once_lock);
     }
     return 0;
