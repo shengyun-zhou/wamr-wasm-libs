@@ -21,9 +21,15 @@ struct pthread_cleanup_handler_stacknode {
 };
 
 void __pthread_exit_cleanup(int from_func_pthread_exit) {
-    while (__g_tls_data.cleanup_handler_stacktop) {
-        // Don't execute cleanup functions if this thread don't exit by calling pthread_exit()
-        pthread_cleanup_pop(from_func_pthread_exit);
+    if (from_func_pthread_exit) {
+        while (__g_tls_data.cleanup_handler_stacktop) {
+            void (*f)(void *) = __g_tls_data.cleanup_handler_stacktop->__f;
+            void *x = __g_tls_data.cleanup_handler_stacktop->__x;
+            __g_tls_data.cleanup_handler_stacktop = __g_tls_data.cleanup_handler_stacktop->__next;
+            f(x);
+        }
+    } else {
+        __g_tls_data.cleanup_handler_stacktop = NULL;
     }
     while (__g_tls_data.cxx_dtor_stacktop) {
         struct cxx_dtor_stacknode* p_node = __g_tls_data.cxx_dtor_stacktop;
@@ -338,22 +344,17 @@ int pthread_setcanceltype(int type, int *oldtype) {
     return 0;
 }
 
-void pthread_cleanup_push(void (*routine)(void *), void *arg) {
-    struct pthread_cleanup_handler_stacknode* new_node = malloc(sizeof(struct pthread_cleanup_handler_stacknode));
-    new_node->next_node = __g_tls_data.cleanup_handler_stacktop;
-    new_node->routine = routine;
-    new_node->arg = arg;
-    __g_tls_data.cleanup_handler_stacktop = new_node;
+void _pthread_cleanup_push(struct __ptcb *cb, void (*f)(void *), void *x) {
+    cb->__f = f;
+    cb->__x = x;
+    cb->__next = __g_tls_data.cleanup_handler_stacktop;
+    __g_tls_data.cleanup_handler_stacktop = cb;
 }
 
-void pthread_cleanup_pop(int execute) {
-    if (__g_tls_data.cleanup_handler_stacktop) {
-        struct pthread_cleanup_handler_stacknode* p_node = __g_tls_data.cleanup_handler_stacktop;
-        __g_tls_data.cleanup_handler_stacktop = __g_tls_data.cleanup_handler_stacktop->next_node;
-        if (execute)
-            p_node->routine(p_node->arg);
-        free(p_node);
-    }
+void _pthread_cleanup_pop(struct __ptcb *cb, int run) {
+    __g_tls_data.cleanup_handler_stacktop = cb->__next;
+    if (run)
+        cb->__f(cb->__x);
 }
 
 void __imported_pthread_exit(void*) __attribute__((

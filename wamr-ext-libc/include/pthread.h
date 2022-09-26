@@ -123,8 +123,18 @@ int pthread_mutexattr_settype(pthread_mutexattr_t *, int);
 
 int pthread_setcancelstate(int, int *);
 int pthread_setcanceltype(int, int *);
-void pthread_cleanup_push(void (*)(void *), void *);
-void pthread_cleanup_pop(int);
+
+struct __ptcb {
+    void (*__f)(void *);
+    void *__x;
+    struct __ptcb *__next;
+};
+
+void _pthread_cleanup_push(struct __ptcb *, void (*)(void *), void *);
+void _pthread_cleanup_pop(struct __ptcb *, int);
+
+#define pthread_cleanup_push(f, x) do { struct __ptcb __cb; _pthread_cleanup_push(&__cb, f, x);
+#define pthread_cleanup_pop(r) _pthread_cleanup_pop(&__cb, (r)); } while(0)
 
 int pthread_setname_np(const char *name);
 int pthread_getname_np(char *name, size_t len);

@@ -9,7 +9,7 @@ struct cxx_dtor_stacknode {
     void *arg;
 };
 
-struct pthread_cleanup_handler_stacknode;
+struct __ptcb;
 struct pthread_routine_bundle;
 
 struct tls_data {
@@ -17,7 +17,7 @@ struct tls_data {
     int tls_h_errno;
     pid_t cache_tid;
     struct __wasilibc_find_path_tls_data wasi_find_path_data;
-    struct pthread_cleanup_handler_stacknode* cleanup_handler_stacktop;
+    struct __ptcb* cleanup_handler_stacktop;
     struct cxx_dtor_stacknode* cxx_dtor_stacktop;
     struct pthread_routine_bundle* thread_routine_bundle;
     char thread_name[32];
