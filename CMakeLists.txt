@@ -52,19 +52,6 @@ add_custom_target(pre_wamr_libc
         )
 add_dependencies(pre_wamr_libc wamr_libc_include_all)
 
-# Recompile dlmalloc in wasi-libc with multi-thread support
-add_library(wamr_dlmalloc OBJECT ${WASI_LIBC_SOURCE}/dlmalloc/src/dlmalloc.c)
-add_compile_options(-Werror -Wno-switch -Wno-shift-op-parentheses
-    -Wno-null-pointer-arithmetic -Wno-unused-parameter -Wno-sign-compare
-    -Wno-unused-variable -Wno-unused-function -Wno-ignored-attributes -Wno-missing-braces
-    -Wno-ignored-pragmas -Wno-unused-but-set-variable)
-target_compile_definitions(wamr_dlmalloc PRIVATE -DUSE_LOCKS=1 -DUSE_SPIN_LOCKS=0 -DUSE_RECURSIVE_LOCKS=1)
-target_include_directories(wamr_dlmalloc PRIVATE
-        ${WAMR_EXT_LIBC_INCLUDE_DIR}
-        ${WASI_LIBC_SOURCE}/sysroot/include
-        )
-add_dependencies(wamr_dlmalloc pre_wamr_libc)
-
 add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/network/inet_addr.c
         ${WASI_LIBC_TOP_HALF_SRC}/network/inet_legacy.c
@@ -101,6 +88,7 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/network/herror.c
         ${WASI_LIBC_TOP_HALF_SRC}/network/hstrerror.c
 
+        ${WASI_LIBC_TOP_HALF_SRC}/malloc/posix_memalign.c
         ${WASI_LIBC_TOP_HALF_SRC}/misc/realpath.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_init.c
@@ -131,7 +119,6 @@ add_dependencies(wamr_top_half pre_wamr_libc)
 set(WASI_LIBC_BOTTOM_HALF_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/source)
 set(WASI_LIBC_BOTTOM_HALF_CLOUDLIBC_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/cloudlibc/src/libc)
 add_library(wamr_libc STATIC
-        $<TARGET_OBJECTS:wamr_dlmalloc>
         $<TARGET_OBJECTS:wamr_top_half>
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/pthread_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/wamr_ext.c
@@ -144,6 +131,7 @@ add_library(wamr_libc STATIC
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/signal.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/main.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/process.c
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/malloc.c
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
