@@ -117,8 +117,10 @@ void *pthread_getspecific(pthread_key_t);
 int pthread_setspecific(pthread_key_t, const void *);
 
 int pthread_mutexattr_destroy(pthread_mutexattr_t *);
+int pthread_mutexattr_getpshared(const pthread_mutexattr_t *__restrict, int *__restrict);
 int pthread_mutexattr_gettype(const pthread_mutexattr_t *__restrict, int *__restrict);
 int pthread_mutexattr_init(pthread_mutexattr_t *);
+int pthread_mutexattr_setpshared(pthread_mutexattr_t *, int);
 int pthread_mutexattr_settype(pthread_mutexattr_t *, int);
 
 int pthread_setcancelstate(int, int *);

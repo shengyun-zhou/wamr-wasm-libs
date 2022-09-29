@@ -180,25 +180,6 @@ int pthread_mutex_destroy(pthread_mutex_t* mutex) {
     return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_MUTEX_DESTROY, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
-int pthread_mutexattr_init(pthread_mutexattr_t *attr) {
-    memset(attr, 0, sizeof(pthread_mutexattr_t));
-    return 0;
-}
-
-int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type) {
-    attr->__attr = type;
-    return 0;
-}
-
-int pthread_mutexattr_gettype(const pthread_mutexattr_t *attr, int* out_type) {
-    *out_type = attr->__attr;
-    return 0;
-}
-
-int pthread_mutexattr_destroy(pthread_mutexattr_t *attr) {
-    return 0;
-}
-
 int pthread_cond_init(pthread_cond_t* cond, const pthread_condattr_t* attr) {
     wamr_ext_syscall_arg argv[] = {
         {.p = cond},

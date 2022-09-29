@@ -4,6 +4,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_SYSTEM_NAME WASI)
 project(wamr_wasi_libc C)
 set(CMAKE_C_STANDARD 11)
+add_compile_options(-Werror -Wno-parentheses -Wno-shift-op-parentheses -Wno-bitwise-op-parentheses -Wno-logical-op-parentheses)
 
 set(WASI_LIBC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/wasi-libc)
 set(PREBUILT_WASI_LIBC ${WASI_LIBC_SOURCE}/sysroot/lib/wasm32-wasi/libc.a)
@@ -107,10 +108,17 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_getsigmask.c
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setsigmask.c
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_sched.c
+
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_get.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_destroy.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_init.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_setpshared.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_settype.c
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include
         ${WASI_LIBC_TOP_HALF_SRC}/internal
+        ${WASI_LIBC_TOP_HALF_SRC}/../arch/wasm32
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
         ${WASI_LIBC_SOURCE}/sysroot/include
         )
