@@ -9,9 +9,6 @@
 #include "../internal/wamr_ext_syscall.h"
 #include "../internal/tls_data.h"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-attributes"
-
 _Thread_local struct tls_data __g_tls_data;
 
 struct pthread_cleanup_handler_stacknode {
@@ -43,56 +40,80 @@ void __pthread_exit_cleanup(int from_func_pthread_exit) {
     }
 }
 
-int32_t __imported_pthread_create(uint32_t*, void*, void*, void*) __attribute__((
-    __import_name__("pthread_create")
-));
-
 struct pthread_routine_bundle {
     void*(*user_func)(void*);
     void* user_arg;
 };
 
-void __pthread_routine(void* arg) {
+void* __pthread_routine(void* arg) {
     struct pthread_routine_bundle* p_bundle = arg;
     __g_tls_data.thread_routine_bundle = p_bundle;
-    p_bundle->user_func(p_bundle->user_arg);
+    void* ret = p_bundle->user_func(p_bundle->user_arg);
+    __pthread_exit_cleanup(0);
+    return ret;
+}
+
+void __attribute__((destructor)) __main_atexit() {
     __pthread_exit_cleanup(0);
 }
 
+struct wamr_create_thread_req {
+    uint32_t ret_handle_id;
+    void*(*start_func)(void*);
+    void* start_arg;
+    void* app_stack_addr;
+    uint32_t stack_size;
+};
+
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*func)(void*), void* arg) {
-    if (!func)
+    if (!func || !thread)
         return EINVAL;
     struct pthread_routine_bundle* p_bundle = malloc(sizeof(struct pthread_routine_bundle));
     p_bundle->user_func = func;
     p_bundle->user_arg = arg;
-    int ret = __imported_pthread_create(thread, NULL, __pthread_routine, p_bundle);
-    if (ret != 0)
+
+    struct wamr_create_thread_req req = {0};
+    req.start_func = __pthread_routine;
+    req.start_arg = p_bundle;
+    req.stack_size = 131072;
+    wamr_ext_syscall_arg argv[] = {
+        {.p = &req},
+    };
+    int ret = __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_CREATE, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+    if (ret != 0) {
         free(p_bundle);
+    } else {
+        *thread = req.ret_handle_id;
+    }
     return ret;
 }
 
-int32_t __imported_pthread_detach(uint32_t) __attribute__((
-    __import_name__("pthread_detach")
-));
-
-int pthread_detach(pthread_t thread) {
-    return __imported_pthread_detach(thread);
+pthread_t pthread_self() {
+    uint32_t handle_id = 0;
+    wamr_ext_syscall_arg argv[] = {
+        {.p = &handle_id},
+    };
+    __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_SELF, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+    return handle_id;
 }
-
-int32_t __imported_pthread_join(uint32_t, void**) __attribute__((
-    __import_name__("pthread_join")
-));
 
 int pthread_join(pthread_t thread, void **retval) {
-    return __imported_pthread_join(thread, retval);
+    uint32_t syscall_join_retval = 0;
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = thread},
+        {.p = &syscall_join_retval},
+    };
+    int ret = __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_JOIN, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+    if (ret == 0 && retval)
+        *retval = (void*)syscall_join_retval;
+    return ret;
 }
 
-uint32_t __imported_pthread_self() __attribute__((
-    __import_name__("pthread_self")
-));
-
-pthread_t pthread_self() {
-    return __imported_pthread_self();
+int pthread_detach(pthread_t thread) {
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = thread},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_DETACH, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
 int pthread_equal(pthread_t t1, pthread_t t2) {
@@ -296,36 +317,41 @@ int pthread_rwlock_destroy(pthread_rwlock_t *rwlock) {
     return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_RWLOCK_DESTROY, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
-int32_t __imported_pthread_key_create(uint32_t*, void(*)(void*)) __attribute__((
-    __import_name__("pthread_key_create")
-));
-
 int pthread_key_create(pthread_key_t *k, void(*deconstructor)(void*)) {
-    return __imported_pthread_key_create(k, deconstructor);
+    if (!k)
+        return EINVAL;
+    wamr_ext_syscall_arg argv[] = {
+        {.p = k},
+        {.p = deconstructor}
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_KEY_CREATE, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
-
-int32_t __imported_pthread_key_delete(uint32_t) __attribute__((
-    __import_name__("pthread_key_delete")
-));
 
 int pthread_key_delete(pthread_key_t k) {
-    return __imported_pthread_key_delete(k);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = k},
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_KEY_DELETE, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
-
-void* __imported_pthread_getspecific(uint32_t) __attribute__((
-    __import_name__("pthread_getspecific")
-));
-
-void* pthread_getspecific(pthread_key_t k) {
-    return __imported_pthread_getspecific(k);
-}
-
-int32_t __imported_pthread_setspecific(uint32_t, void*) __attribute__((
-    __import_name__("pthread_setspecific")
-));
 
 int pthread_setspecific(pthread_key_t k, const void* obj) {
-    return __imported_pthread_setspecific(k, (void*)obj);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = k},
+        {.u32 = (uintptr_t)obj}
+    };
+    return __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_SETSPECIFIC, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+}
+
+void* pthread_getspecific(pthread_key_t k) {
+    uint32_t val = 0;
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = k},
+        {.p = &val}
+    };
+    int ret = __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_GETSPECIFIC, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
+    if (ret != 0)
+        return NULL;
+    return (void*)val;
 }
 
 int pthread_atfork(void (*prepare)(void), void (*parent)(void), void (*child)(void)) {
@@ -357,13 +383,12 @@ void _pthread_cleanup_pop(struct __ptcb *cb, int run) {
         cb->__f(cb->__x);
 }
 
-void __imported_pthread_exit(void*) __attribute__((
-    __import_name__("pthread_exit")
-));
-
 void pthread_exit(void *retval) {
     __pthread_exit_cleanup(1);
-    __imported_pthread_exit(retval);
+    wamr_ext_syscall_arg argv[] = {
+        {.u32 = (uintptr_t)retval},
+    };
+    __imported_wamr_ext_syscall(__EXT_SYSCALL_PTHREAD_EXIT, sizeof(argv) / sizeof(wamr_ext_syscall_arg), argv);
 }
 
 pthread_mutex_t __g_pthread_once_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -575,5 +600,3 @@ int sem_destroy(sem_t* sem) {
     *sem = NULL;
     return 0;
 }
-
-#pragma clang diagnostic pop

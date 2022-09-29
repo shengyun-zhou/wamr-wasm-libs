@@ -15,31 +15,32 @@
 #include <sys/un.h>
 #include <semaphore.h>
 
-struct MyTLSDeleter {
-    MyTLSDeleter(int _threadIdx) : threadIdx(_threadIdx) {}
-    void operator()(uint32_t* p) {
-        delete p;
-        printf("TLS var of thread %u was deleted\n", gettid());
-    }
-
-    int threadIdx;
-};
-
-thread_local std::shared_ptr<uint32_t> g;
 std::recursive_mutex g_lock;
 sem_t g_sema;
 const int G_THREAD_COUNT = 4;
 const int G_SEMAPHORE_INIT_VALUE = G_THREAD_COUNT / 2;
+
+struct MyTLSDeleter {
+    MyTLSDeleter() {}
+    void operator()(uint32_t* p) {
+        delete p;
+        std::lock_guard<decltype(g_lock)> _al(g_lock);
+        printf("TLS var %p of thread %u was deleted\n", p, gettid());
+    }
+};
+
 struct MyGlobal {
-    ~MyGlobal() { printf("Global var deconstruction\n"); }
+    ~MyGlobal() { printf("Global var destruction\n"); }
 } _g;
 
+thread_local std::shared_ptr<uint32_t> g(new uint32_t(0), MyTLSDeleter());
+
 void thread_msg(int idx, const std::string& msg) {
+    int p = 0;
     sem_wait(&g_sema);
     g_lock.lock();
     g_lock.lock();
-    if (!g)
-        g.reset(new uint32_t(0), MyTLSDeleter(idx));
+    printf("Address of stack var p of thread %d is %p\n", idx, &p);
     std::cout << "thread " << idx << " says: " << msg << std::endl;
     (*g)++;
     std::cout << "TLS var g of thread " << idx << " is: " << *g << std::endl;
@@ -101,6 +102,7 @@ int main(int argc, char** argv) {
     printf("Current semaphore value: %d\n", sem_value);
     sem_destroy(&g_sema);
 
+    std::cout << "TLS var g of main thread is: " << *g << std::endl;
     std::atomic<uint64_t> n(0);
     n++;
     std::cout << "Hello world" << std::endl << n.load() << std::endl;
