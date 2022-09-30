@@ -109,7 +109,21 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setsigmask.c
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_sched.c
 
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/lock_ptc.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/default_attr.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_destroy.c
         ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_get.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_init.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setdetachstate.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setguardsize.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setschedpolicy.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setscope.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setstack.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setstacksize.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_destroy.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_init.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_setpshared.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_settype.c
         ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_destroy.c
         ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_init.c
         ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_setpshared.c
@@ -143,6 +157,7 @@ add_library(wamr_libc STATIC
         )
 target_include_directories(wamr_libc PRIVATE
         ${WAMR_EXT_LIBC_INCLUDE_DIR}
+        ${WASI_LIBC_TOP_HALF_SRC}/../arch/wasm32
         ${WASI_LIBC_SOURCE}/sysroot/include
         )
 

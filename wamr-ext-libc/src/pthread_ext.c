@@ -8,6 +8,8 @@
 #include <semaphore.h>
 #include "../internal/wamr_ext_syscall.h"
 #include "../internal/tls_data.h"
+#define hidden
+#include "../../wasi-libc/libc-top-half/musl/src/internal/pthread_impl.h"
 
 _Thread_local struct tls_data __g_tls_data;
 
@@ -61,8 +63,9 @@ struct wamr_create_thread_req {
     uint32_t ret_handle_id;
     void*(*start_func)(void*);
     void* start_arg;
-    void* app_stack_addr;
+    void* stack_addr;
     uint32_t stack_size;
+    uint8_t thread_detached;
 };
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*func)(void*), void* arg) {
@@ -75,7 +78,20 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void*(*func)(v
     struct wamr_create_thread_req req = {0};
     req.start_func = __pthread_routine;
     req.start_arg = p_bundle;
-    req.stack_size = 131072;
+    if (attr) {
+        size_t stack_size = 0;
+        if (pthread_attr_getstack(attr, &req.stack_addr, &stack_size) != 0)
+            pthread_attr_getstacksize(attr, &stack_size);
+        req.stack_size = stack_size;
+        int detach_state;
+        if (pthread_attr_getdetachstate(attr, &detach_state) == 0 && detach_state == PTHREAD_CREATE_DETACHED)
+            req.thread_detached = 1;
+    }
+    if (req.stack_size == 0) {
+        __acquire_ptc();
+        req.stack_size = __default_stacksize;
+        __release_ptc();
+    }
     wamr_ext_syscall_arg argv[] = {
         {.p = &req},
     };
@@ -410,22 +426,6 @@ int pthread_setname_np(const char *name) {
 int pthread_getname_np(char *name, size_t len) {
     snprintf(name, len, "%s", __g_tls_data.thread_name);
     return 0;
-}
-
-int pthread_attr_init(pthread_attr_t *attr) {
-    return 0;
-}
-
-int pthread_attr_destroy(pthread_attr_t *attr) {
-    return 0;
-}
-
-int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize) {
-    return ENOSYS;
-}
-
-int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize) {
-    return ENOSYS;
 }
 
 struct _sem_s {

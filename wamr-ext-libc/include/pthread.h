@@ -71,12 +71,13 @@ extern "C" {
 
 #define PTHREAD_CANCELED ((void *)-1)
 
-
 #define PTHREAD_BARRIER_SERIAL_THREAD (-1)
-
 
 #define PTHREAD_NULL ((pthread_t)0)
 
+#ifndef PTHREAD_STACK_MIN
+#define PTHREAD_STACK_MIN 2048
+#endif
 
 int pthread_create(pthread_t *__restrict, const pthread_attr_t *__restrict, void *(*)(void *), void *__restrict);
 int pthread_detach(pthread_t);
@@ -141,10 +142,21 @@ void _pthread_cleanup_pop(struct __ptcb *, int);
 int pthread_setname_np(const char *name);
 int pthread_getname_np(char *name, size_t len);
 
-int pthread_attr_init(pthread_attr_t *attr);
-int pthread_attr_destroy(pthread_attr_t *attr);
-int pthread_attr_setstacksize(pthread_attr_t *attr, size_t stacksize);
-int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stacksize);
+int pthread_attr_init(pthread_attr_t *);
+int pthread_attr_destroy(pthread_attr_t *);
+
+int pthread_attr_getguardsize(const pthread_attr_t *__restrict, size_t *__restrict);
+int pthread_attr_setguardsize(pthread_attr_t *, size_t);
+int pthread_attr_getstacksize(const pthread_attr_t *__restrict, size_t *__restrict);
+int pthread_attr_setstacksize(pthread_attr_t *, size_t);
+int pthread_attr_getdetachstate(const pthread_attr_t *, int *);
+int pthread_attr_setdetachstate(pthread_attr_t *, int);
+int pthread_attr_getstack(const pthread_attr_t *__restrict, void **__restrict, size_t *__restrict);
+int pthread_attr_setstack(pthread_attr_t *, void *, size_t);
+int pthread_attr_getscope(const pthread_attr_t *__restrict, int *__restrict);
+int pthread_attr_setscope(pthread_attr_t *, int);
+int pthread_attr_getschedpolicy(const pthread_attr_t *__restrict, int *__restrict);
+int pthread_attr_setschedpolicy(pthread_attr_t *, int);
 
 #ifdef __cplusplus
 }
