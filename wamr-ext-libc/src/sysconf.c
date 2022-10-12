@@ -20,6 +20,13 @@ long __wamr_ext_sysconf(int name) {
                 return mem_total / PAGE_SIZE;
             return 0;
         }
+        case _SC_AVPHYS_PAGES: {
+            uint64_t mem_avail = 0;
+            uint32_t buflen = sizeof(mem_avail);
+            if (wamr_ext_sysctl("sysinfo.vm_mem_avail", &mem_avail, &buflen) == 0)
+                return mem_avail / PAGE_SIZE;
+            return 0;
+        }
     }
     errno = EINVAL;
     return -1;
