@@ -16,6 +16,5 @@ tar xf "$SOURCE_DIR/$SOURCE_TARBALL" -C $BUILD_DIR --strip 1
 cd $BUILD_DIR
 apply_patch libuuid-${LIBUUID_VERSION}
 
-autoreconf -fi
 ./configure $AUTOCONF_FLAGS
 make install -j$(cpu_count)

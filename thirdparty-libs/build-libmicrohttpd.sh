@@ -16,6 +16,5 @@ tar xf "$SOURCE_DIR/$SOURCE_TARBALL" -C $BUILD_DIR --strip 1
 cd $BUILD_DIR
 apply_patch libmicrohttpd-${LIBMICROHTTPD_VERSION}
 
-autoreconf -fi
 ./configure $AUTOCONF_FLAGS --disable-examples --disable-doc --enable-poll --disable-sendfile
 make install -j$(cpu_count)
