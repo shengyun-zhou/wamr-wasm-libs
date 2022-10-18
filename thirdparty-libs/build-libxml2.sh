@@ -16,6 +16,6 @@ tar xf "$SOURCE_DIR/$SOURCE_TARBALL" -C $BUILD_DIR --strip 1
 cd $BUILD_DIR
 apply_patch libxml2-${LIBXML2_VERSION}
 
-autoreconf -fi
-./configure $AUTOCONF_FLAGS --without-python
-make install -j$(cpu_count)
+mkdir build && cd build
+cmake .. $CMAKE_FLAGS -DBUILD_SHARED_LIBS=OFF -DLIBXML2_WITH_PYTHON=OFF -DLIBXML2_WITH_TESTS=OFF
+cmake --build . --target install
