@@ -25,7 +25,11 @@ cp -r libc-top-half/musl/include libc-top-half/musl/include.bak
 
 export CC=${CC:-${CROSS_PREFIX}-clang}
 
-make CC="$CC" AR="${CROSS_PREFIX}-ar" NM="${CROSS_PREFIX}-nm" -j$(cpu_count)
+make CC="$CC" AR="${CROSS_PREFIX}-ar" NM="${CROSS_PREFIX}-nm" THREAD_MODEL=posix MALLOC_IMPL=none -j$(cpu_count)
+
+if [[ -n "$SYSROOT_OLD_LIBDIR_PREFIX" ]]; then
+  ln -sfn "$(basename sysroot/$SYSROOT_LIBDIR_PREFIX)" "sysroot/$SYSROOT_OLD_LIBDIR_PREFIX"
+fi
 
 # Merge some emulated libs into libc
 "${CROSS_PREFIX}-ar" qcsL "sysroot/$SYSROOT_LIBDIR_PREFIX/libc.a" "sysroot/$SYSROOT_LIBDIR_PREFIX/libwasi-emulated-signal.a"

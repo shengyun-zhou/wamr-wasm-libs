@@ -7,8 +7,8 @@ set(CMAKE_C_STANDARD 11)
 add_compile_options(-Werror -Wno-parentheses -Wno-shift-op-parentheses -Wno-bitwise-op-parentheses -Wno-logical-op-parentheses)
 
 set(WASI_LIBC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/wasi-libc)
-set(PREBUILT_WASI_LIBC ${WASI_LIBC_SOURCE}/sysroot/lib/wasm32-wasi/libc.a)
-set(OUTPUT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi/libc.a)
+set(PREBUILT_WASI_LIBC ${WASI_LIBC_SOURCE}/sysroot/lib/wasm32-wasi-pthread/libc.a)
+set(OUTPUT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi-pthread/libc.a)
 set(WASI_LIBC_TOP_HALF ${WASI_LIBC_SOURCE}/libc-top-half/musl)
 set(WASI_LIBC_TOP_HALF_SRC ${WASI_LIBC_TOP_HALF}/src)
 set(WAMR_EXT_LIBC_ROOT_DIR wamr-ext-libc)
@@ -23,7 +23,6 @@ set(_WAMR_EXT_LIBC_HEADERS
         dlfcn.h
         ifaddrs.h
         netdb.h
-        pthread.h
         resolv.h
         spawn.h
         syslog.h
@@ -88,9 +87,11 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/network/resolvconf.c
         ${WASI_LIBC_TOP_HALF_SRC}/network/herror.c
         ${WASI_LIBC_TOP_HALF_SRC}/network/hstrerror.c
+        ${WASI_LIBC_TOP_HALF_SRC}/network/h_errno.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/malloc/posix_memalign.c
         ${WASI_LIBC_TOP_HALF_SRC}/misc/realpath.c
+        ${WASI_LIBC_TOP_HALF_SRC}/linux/gettid.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_init.c
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_destroy.c
@@ -109,25 +110,7 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_setsigmask.c
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_sched.c
 
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/lock_ptc.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/default_attr.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_destroy.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_get.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_init.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setdetachstate.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setguardsize.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setschedpolicy.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setscope.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setstack.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_attr_setstacksize.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_destroy.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_init.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_setpshared.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_settype.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_destroy.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_init.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_setpshared.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_mutexattr_settype.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_atfork.c
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include
@@ -142,7 +125,6 @@ set(WASI_LIBC_BOTTOM_HALF_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/source)
 set(WASI_LIBC_BOTTOM_HALF_CLOUDLIBC_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/cloudlibc/src/libc)
 add_library(wamr_libc STATIC
         $<TARGET_OBJECTS:wamr_top_half>
-        ${WAMR_EXT_LIBC_ROOT_DIR}/src/pthread_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/wamr_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/sysconf.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/cxxabi.c
@@ -165,7 +147,7 @@ add_custom_command(TARGET wamr_libc POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy ${PREBUILT_WASI_LIBC} ${CMAKE_CURRENT_BINARY_DIR}/libc.a
         # Remove some original function implementation
         COMMAND ${CMAKE_AR} -d ${CMAKE_CURRENT_BINARY_DIR}/libc.a
-        dlmalloc.o recv.o send.o getsockopt.o accept.o shutdown.o
+        recv.o send.o getsockopt.o accept.o shutdown.o
         iconv.o iconv_close.o
         COMMAND ${CMAKE_AR} qscL ${CMAKE_CURRENT_BINARY_DIR}/libc.a $<TARGET_FILE:wamr_libc>
         COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/libc.a ${OUTPUT_WASI_LIBC}

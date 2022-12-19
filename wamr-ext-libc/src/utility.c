@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wamr_ext.h>
-#include "../internal/tls_data.h"
 
 int getpagesize() { return sysconf(_SC_PAGESIZE); }
 
@@ -25,12 +24,6 @@ int gethostname(char *name, size_t len) {
 }
 int sethostname(const char *name, size_t len) { errno = EPERM; return -1; }
 
-int *__errno_location() { return &__g_tls_data.tls_errno; }
-int *__h_errno_location() { return &__g_tls_data.tls_h_errno; }
-struct __wasilibc_find_path_tls_data* __wasilibc_find_path_tls_data_location() {
-    return &__g_tls_data.wasi_find_path_data;
-}
-
 pid_t getpid() {
     static pid_t g_pid = 0;
     if (g_pid == 0) {
@@ -40,14 +33,4 @@ pid_t getpid() {
         g_pid = temp_pid;
     }
     return g_pid;
-}
-
-pid_t gettid() {
-    if (__g_tls_data.cache_tid == 0) {
-        uint32_t tid = 0;
-        uint32_t buf_len = sizeof(tid);
-        wamr_ext_sysctl("sysinfo.tid", &tid, &buf_len);
-        __g_tls_data.cache_tid = tid;
-    }
-    return __g_tls_data.cache_tid;
 }
