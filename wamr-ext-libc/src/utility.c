@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <wamr_ext.h>
 
-int getpagesize() { return sysconf(_SC_PAGESIZE); }
-
 int gethostname(char *name, size_t len) {
     // Ref: https://code.woboq.org/userspace/glibc/sysdeps/posix/gethostname.c.html
     struct utsname buf;
