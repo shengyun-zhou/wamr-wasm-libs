@@ -91,7 +91,6 @@ add_library(wamr_top_half OBJECT
 
         ${WASI_LIBC_TOP_HALF_SRC}/malloc/posix_memalign.c
         ${WASI_LIBC_TOP_HALF_SRC}/misc/realpath.c
-        ${WASI_LIBC_TOP_HALF_SRC}/linux/gettid.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_init.c
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawn_file_actions_destroy.c
