@@ -124,6 +124,7 @@ set(WASI_LIBC_BOTTOM_HALF_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/source)
 set(WASI_LIBC_BOTTOM_HALF_CLOUDLIBC_SRC ${WASI_LIBC_SOURCE}/libc-bottom-half/cloudlibc/src/libc)
 add_library(wamr_libc STATIC
         $<TARGET_OBJECTS:wamr_top_half>
+        ${WAMR_EXT_LIBC_ROOT_DIR}/src/pthread_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/wamr_ext.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/sysconf.c
         ${WAMR_EXT_LIBC_ROOT_DIR}/src/cxxabi.c
