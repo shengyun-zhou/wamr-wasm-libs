@@ -11,17 +11,21 @@ if [ ! -f "$SOURCE_DIR/$SOURCE_TARBALL" ]; then
     mv "$SOURCE_DIR/$SOURCE_TARBALL.tmp" "$SOURCE_DIR/$SOURCE_TARBALL"
 fi
 BUILD_DIR="wasi-libc"
-(test -d $BUILD_DIR && rm -rf $BUILD_DIR) || true
-mkdir -p $BUILD_DIR
-tar xf "$SOURCE_DIR/$SOURCE_TARBALL" -C $BUILD_DIR --strip 1
-cd $BUILD_DIR
-apply_patch wasi-libc-${WASI_LIBC_COMMIT_ID:0:8}
-# Remove -Werror compile flag
-sed -i.bak "s/-Werror//g" Makefile
-# Remove symbol different checking
-sed -i.bak "/diff -wur/d" Makefile
-# Backup include dir
-cp -r libc-top-half/musl/include libc-top-half/musl/include.bak
+if [[ -z "$__PRESERVE_WASI_LIBC_DIR" ]]; then
+  (test -d $BUILD_DIR && rm -rf $BUILD_DIR) || true
+  mkdir -p $BUILD_DIR
+  tar xf "$SOURCE_DIR/$SOURCE_TARBALL" -C $BUILD_DIR --strip 1
+  cd $BUILD_DIR
+  apply_patch wasi-libc-${WASI_LIBC_COMMIT_ID:0:8}
+  # Remove -Werror compile flag
+  sed -i.bak "s/-Werror//g" Makefile
+  # Remove symbol different checking
+  sed -i.bak "/diff -wur/d" Makefile
+  # Backup include dir
+  cp -r libc-top-half/musl/include libc-top-half/musl/include.bak
+else
+  cd $BUILD_DIR
+fi
 
 export CC=${CC:-${CROSS_PREFIX}-clang}
 
