@@ -544,11 +544,12 @@ int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
     do {
         if (lsock == -1 || csock == -1)
             break;
-        uint32_t _random_num = 0;
-        getentropy(&_random_num, sizeof(_random_num));
-        if (_random_num == 0)
-            _random_num = random();
-        uint16_t random_port = (_random_num % 16284U) + 49152U;
+        {
+            uint32_t _random_num = 0;
+            getentropy(&_random_num, sizeof(_random_num));
+            if (_random_num != 0)
+                srandom(_random_num);
+        }
         struct sockaddr_storage laddr = {0};
         laddr.ss_family = domain;
         socklen_t laddr_len = 0;
@@ -563,7 +564,8 @@ int socketpair(int domain, int type, int protocol, int socket_vector[2]) {
         }
         {
             int r;
-            for (r = 0; r < 100; r++, random_port++) {
+            for (r = 0; r < 100; r++) {
+                uint16_t random_port = (random() % 16284U) + 49152U;
                 if (laddr.ss_family == AF_INET)
                     ((struct sockaddr_in*)&laddr)->sin_port = htons(random_port);
                 else if (laddr.ss_family == AF_INET6)
