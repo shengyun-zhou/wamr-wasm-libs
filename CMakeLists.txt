@@ -110,6 +110,7 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_sched.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_atfork.c
+        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_equal.c
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include
