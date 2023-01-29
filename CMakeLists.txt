@@ -7,8 +7,8 @@ set(CMAKE_C_STANDARD 11)
 add_compile_options(-Werror -Wno-parentheses -Wno-shift-op-parentheses -Wno-bitwise-op-parentheses -Wno-logical-op-parentheses)
 
 set(WASI_LIBC_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/wasi-libc)
-set(PREBUILT_WASI_LIBC ${WASI_LIBC_SOURCE}/sysroot/lib/wasm32-wasi-pthread/libc.a)
-set(OUTPUT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi-pthread/libc.a)
+set(PREBUILT_WASI_LIBC ${WASI_LIBC_SOURCE}/sysroot/lib/wasm32-wasi/libc.a)
+set(OUTPUT_WASI_LIBC ${CMAKE_CURRENT_SOURCE_DIR}/sysroot/lib/wasm32-wasi/libc.a)
 set(WASI_LIBC_TOP_HALF ${WASI_LIBC_SOURCE}/libc-top-half/musl)
 set(WASI_LIBC_TOP_HALF_SRC ${WASI_LIBC_TOP_HALF}/src)
 set(WAMR_EXT_LIBC_ROOT_DIR wamr-ext-libc)
@@ -110,7 +110,6 @@ add_library(wamr_top_half OBJECT
         ${WASI_LIBC_TOP_HALF_SRC}/process/posix_spawnattr_sched.c
 
         ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_atfork.c
-        ${WASI_LIBC_TOP_HALF_SRC}/thread/pthread_equal.c
         )
 target_include_directories(wamr_top_half PRIVATE
         ${WASI_LIBC_TOP_HALF_SRC}/include

@@ -15,9 +15,9 @@ esac
 unset __os_name
 export PATCH_DIR="$(pwd)/patch"
 export SOURCE_DIR="${SOURCE_DIR:-"$(pwd)/.src-tarballs"}"
-export CROSS_PREFIX="${CROSS_PREFIX:-wasm32-wamr-wasi-pthread}"
+export CROSS_PREFIX="${CROSS_PREFIX:-wasm32-wamr-wasi-threads}"
 export OUTPUT_SYSROOT="$(pwd)/sysroot"
-export SYSROOT_LIBDIR_PREFIX='lib/wasm32-wasi-pthread'
+export SYSROOT_LIBDIR_PREFIX='lib/wasm32-wasi-threads'
 export SYSROOT_OLD_LIBDIR_PREFIX='lib/wasm32-wasi'
 export OUTPUT_SYSROOT_LIBDIR="$OUTPUT_SYSROOT/$SYSROOT_LIBDIR_PREFIX"
 

@@ -1,14 +1,12 @@
 diff --git a/libc-bottom-half/headers/public/__struct_sockaddr_un.h b/libc-bottom-half/headers/public/__struct_sockaddr_un.h
-index a5be6e5..86f5fe9 100644
+index 6371194..511954b 100644
 --- a/libc-bottom-half/headers/public/__struct_sockaddr_un.h
 +++ b/libc-bottom-half/headers/public/__struct_sockaddr_un.h
-@@ -7,7 +7,8 @@
- #include <__typedef_sa_family_t.h>
+@@ -5,6 +5,7 @@
  
  struct sockaddr_un {
--    _Alignas(max_align_t) sa_family_t sun_family;
-+    sa_family_t sun_family;
-+    char sun_path[40];
+     __attribute__((aligned(__BIGGEST_ALIGNMENT__))) sa_family_t sun_family;
++    char sun_path[30];
  };
  
  #endif
